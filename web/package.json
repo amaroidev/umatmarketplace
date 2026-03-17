@@ -1,0 +1,42 @@
+{
+  "name": "web",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@hookform/resolvers": "^3.3.4",
+    "@react-oauth/google": "^0.13.4",
+    "@tanstack/react-query": "^5.32.0",
+    "axios": "^1.6.8",
+    "goober": "^2.1.18",
+    "lucide-react": "^0.372.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-hook-form": "^7.51.3",
+    "react-hot-toast": "^2.4.1",
+    "react-router-dom": "^6.23.0",
+    "socket.io-client": "^4.7.5",
+    "ts-interface-checker": "^0.1.13",
+    "zod": "^3.23.4"
+  },
+  "devDependencies": {
+    "@rolldown/pluginutils": "^1.0.0-beta.27",
+    "@rollup/rollup-win32-x64-msvc": "^4.59.0",
+    "@types/react": "^18.3.1",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.2.1",
+    "autoprefixer": "^10.4.19",
+    "esbuild": "^0.21.5",
+    "postcss": "^8.4.38",
+    "sharp": "^0.34.5",
+    "tailwindcss": "^3.4.3",
+    "typescript": "^5.4.5",
+    "vite": "^5.2.11",
+    "vite-plugin-pwa": "0.19.0"
+  }
+}

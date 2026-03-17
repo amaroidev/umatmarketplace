@@ -1,0 +1,115 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    @apply bg-earth-50 text-earth-900 font-sans antialiased;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-earth-100;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-earth-300 rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-earth-400;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center px-4 py-2.5 rounded-md font-semibold text-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-primary {
+    @apply btn bg-earth-900 text-earth-50 hover:bg-earth-800 focus:ring-earth-700 active:bg-earth-900;
+  }
+
+  .btn-secondary {
+    @apply btn bg-earth-100 text-earth-800 hover:bg-earth-200 focus:ring-earth-400;
+  }
+
+  .btn-outline {
+    @apply btn border-2 border-earth-900 text-earth-900 hover:bg-earth-100 focus:ring-earth-700;
+  }
+
+  .btn-danger {
+    @apply btn bg-red-600 text-white hover:bg-red-700 focus:ring-red-500;
+  }
+
+  .btn-ghost {
+    @apply btn text-earth-700 hover:bg-earth-100 focus:ring-earth-300;
+  }
+
+  .input {
+    @apply w-full px-4 py-2.5 rounded-lg border border-earth-300 bg-white text-earth-900 placeholder-earth-400 
+    focus:outline-none focus:ring-2 focus:ring-earth-500 focus:border-transparent
+    disabled:bg-earth-100 disabled:cursor-not-allowed transition-all duration-200;
+  }
+
+  .input-error {
+    @apply input border-clay-500 focus:ring-clay-500;
+  }
+
+  .label {
+    @apply block text-sm font-medium text-earth-700 mb-1;
+  }
+
+  .card {
+    @apply bg-white rounded-xl shadow-sm border border-earth-200 overflow-hidden;
+  }
+
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+
+  .badge-primary {
+    @apply badge bg-earth-200 text-earth-800;
+  }
+
+  .badge-success {
+    @apply badge bg-green-100 text-green-700;
+  }
+
+  .badge-warning {
+    @apply badge bg-yellow-100 text-yellow-700;
+  }
+
+  .badge-danger {
+    @apply badge bg-red-100 text-red-700;
+  }
+
+  .page-container {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6;
+  }
+}
+
+/* Dark mode */
+.dark body {
+  @apply bg-gray-900 text-gray-100;
+}
+
+.dark .card {
+  @apply bg-gray-800 border-gray-700;
+}
+
+.dark .input {
+  @apply bg-gray-800 border-gray-600 text-gray-100 placeholder-gray-500;
+}
