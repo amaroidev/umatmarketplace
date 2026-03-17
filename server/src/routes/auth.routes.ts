@@ -6,6 +6,7 @@ import {
   googleLogin,
   getMe,
   updateProfile,
+  uploadAvatar,
   changePassword,
   logout,
   updateNotificationSettings,
@@ -14,6 +15,7 @@ import {
 } from '../controllers/auth.controller';
 import { authenticate } from '../middleware/auth';
 import { validate } from '../middleware/validate';
+import { upload } from '../utils/imageUpload';
 
 const router = Router();
 
@@ -89,10 +91,23 @@ router.put(
       .trim()
       .isLength({ max: 500 })
       .withMessage('Bio cannot exceed 500 characters'),
+    body('storeName')
+      .optional()
+      .trim()
+      .isLength({ max: 80 })
+      .withMessage('Store name cannot exceed 80 characters'),
+    body('brandName')
+      .optional()
+      .trim()
+      .isLength({ max: 80 })
+      .withMessage('Brand name cannot exceed 80 characters'),
     validate,
   ],
   updateProfile
 );
+
+// @route   POST /api/auth/profile/avatar
+router.post('/profile/avatar', authenticate, upload.single('avatar'), uploadAvatar);
 
 // @route   PUT /api/auth/change-password
 router.put(

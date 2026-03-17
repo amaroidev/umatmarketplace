@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -12,13 +12,17 @@ import {
   Phone,
   Calendar,
   ArrowRight,
+  Camera,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
+import authService from '../services/auth.service';
 
 /* ── Schemas ── */
 const profileSchema = z.object({
   name: z.string().min(2, 'At least 2 characters').max(50, 'Max 50 characters'),
+  storeName: z.string().max(80, 'Max 80 characters').optional(),
+  brandName: z.string().max(80, 'Max 80 characters').optional(),
   phone: z.string().min(10, 'Enter a valid phone number'),
   studentId: z.string().optional(),
   location: z.string().optional(),
@@ -65,13 +69,14 @@ function Initials({ name, size = 'lg' }: { name?: string; size?: 'sm' | 'lg' }) 
 }
 
 const ProfilePage: React.FC = () => {
-  const { user, updateProfile, changePassword } = useAuth();
+  const { user, updateProfile, changePassword, refreshUser } = useAuth();
   const [activeTab, setActiveTab] = useState<Tab>('profile');
   const [isUpdating, setIsUpdating] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [showCurrent, setShowCurrent] = useState(false);
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
   const {
     register: rp,
@@ -81,6 +86,8 @@ const ProfilePage: React.FC = () => {
     resolver: zodResolver(profileSchema),
     defaultValues: {
       name: user?.name || '',
+      storeName: user?.storeName || '',
+      brandName: user?.brandName || '',
       phone: user?.phone || '',
       studentId: user?.studentId || '',
       location: user?.location || '',
@@ -118,7 +125,40 @@ const ProfilePage: React.FC = () => {
     }
   };
 
+  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Select a valid image file');
+      event.target.value = '';
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image must be 5MB or smaller');
+      event.target.value = '';
+      return;
+    }
+
+    setUploadingAvatar(true);
+    try {
+      await authService.uploadAvatar(file);
+      await refreshUser();
+      toast.success('Profile photo updated');
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Failed to upload profile photo');
+    } finally {
+      setUploadingAvatar(false);
+      event.target.value = '';
+    }
+  };
+
   const joinYear = user?.createdAt ? new Date(user.createdAt).getFullYear() : null;
+  const avatarSrc = useMemo(() => {
+    if (!user?.avatar) return '';
+    return `${user.avatar}${user.avatar.includes('?') ? '&' : '?'}cb=${user.updatedAt || Date.now()}`;
+  }, [user?.avatar, user?.updatedAt]);
 
   return (
     <div className="min-h-[calc(100vh-56px)] bg-white">
@@ -138,15 +178,30 @@ const ProfilePage: React.FC = () => {
 
             {/* Avatar + identity */}
             <div className="flex items-end gap-6">
-              {user?.avatar ? (
-                <img
-                  src={user.avatar}
-                  alt={user.name}
-                  className="h-24 w-24 object-cover flex-shrink-0"
-                />
-              ) : (
-                <Initials name={user?.name} size="lg" />
-              )}
+              <div className="relative">
+                {user?.avatar ? (
+                  <img
+                    src={avatarSrc}
+                    alt={user.name}
+                    className="h-24 w-24 object-cover flex-shrink-0"
+                    onError={(e) => {
+                      (e.currentTarget as HTMLImageElement).style.display = 'none';
+                    }}
+                  />
+                ) : (
+                  <Initials name={user?.name} size="lg" />
+                )}
+                <label className="absolute -right-2 -bottom-2 cursor-pointer border border-earth-800 bg-white p-2 text-earth-800 hover:bg-earth-50">
+                  <Camera className="h-3.5 w-3.5" />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleAvatarUpload}
+                    disabled={uploadingAvatar}
+                  />
+                </label>
+              </div>
 
               <div className="pb-0.5">
                 <h1 className="text-[clamp(2rem,4vw,3.5rem)] font-black uppercase tracking-[-0.03em] leading-none text-white">
@@ -156,6 +211,11 @@ const ProfilePage: React.FC = () => {
 
                 {/* meta pills */}
                 <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2">
+                  {(user?.storeName || user?.brandName) && (
+                    <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/70 border border-white/20 px-2.5 py-1">
+                      {user?.storeName || user?.brandName}
+                    </span>
+                  )}
                   <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/30 border border-white/10 px-2.5 py-1">
                     {user?.role}
                   </span>
@@ -227,13 +287,31 @@ const ProfilePage: React.FC = () => {
             {/* compact avatar */}
             <div className="flex items-center gap-3">
               {user?.avatar ? (
-                <img src={user.avatar} alt={user.name} className="h-10 w-10 object-cover" />
+                <img
+                  src={avatarSrc}
+                  alt={user.name}
+                  className="h-10 w-10 object-cover"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).style.display = 'none';
+                  }}
+                />
               ) : (
                 <Initials name={user?.name} size="sm" />
               )}
               <div>
                 <p className="text-xs font-bold text-earth-900 leading-tight">{user?.name}</p>
                 <p className="text-[10px] text-earth-400 capitalize">{user?.role}</p>
+                <label className="mt-2 inline-flex cursor-pointer items-center gap-1.5 border border-earth-200 px-2 py-1 text-[9px] font-bold uppercase tracking-[0.12em] text-earth-500 hover:border-earth-400 hover:text-earth-700">
+                  <Camera className="h-3 w-3" />
+                  {uploadingAvatar ? 'Uploading…' : 'Update photo'}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleAvatarUpload}
+                    disabled={uploadingAvatar}
+                  />
+                </label>
               </div>
             </div>
 
@@ -307,6 +385,19 @@ const ProfilePage: React.FC = () => {
                     <label className={labelBase}>Full name</label>
                     <input type="text" className={fieldBase} {...rp('name')} />
                     {pe.name && <p className={errorBase}>{pe.name.message}</p>}
+                  </div>
+                  <div>
+                    <label className={labelBase}>Store name</label>
+                    <input type="text" className={fieldBase} placeholder="e.g. Campus Gadget Hub" {...rp('storeName')} />
+                    {pe.storeName && <p className={errorBase}>{pe.storeName.message}</p>}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 mb-10">
+                  <div>
+                    <label className={labelBase}>Brand name</label>
+                    <input type="text" className={fieldBase} placeholder="e.g. Kofi Tech" {...rp('brandName')} />
+                    {pe.brandName && <p className={errorBase}>{pe.brandName.message}</p>}
                   </div>
                   <div>
                     <label className={labelBase}>Phone</label>

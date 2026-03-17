@@ -5,6 +5,7 @@ export interface CreateOrderData {
   productId: string;
   quantity?: number;
   deliveryMethod: 'pickup' | 'delivery';
+  couponCode?: string;
   pickupLocation?: string;
   deliveryAddress?: string;
   note?: string;
@@ -32,6 +33,27 @@ interface ApiSellerStatsResponse {
       completedOrders: number;
     };
   };
+}
+
+interface Coupon {
+  _id: string;
+  code: string;
+  type: 'percentage' | 'fixed';
+  value: number;
+  minOrderAmount: number;
+  usageLimit: number;
+  usedCount: number;
+  isActive: boolean;
+  startsAt?: string;
+  expiresAt?: string;
+}
+
+interface Bundle {
+  _id: string;
+  name: string;
+  discountPercent: number;
+  isActive: boolean;
+  productIds: Array<{ _id: string; title: string; price: number }>;
 }
 
 const orderService = {
@@ -110,6 +132,48 @@ const orderService = {
    */
   getSellerStats: async (): Promise<ApiSellerStatsResponse> => {
     const response = await api.get('/orders/seller/stats');
+    return response.data;
+  },
+
+  getAbandonedCheckouts: async (limit: number = 20): Promise<{ success: boolean; data: any[] }> => {
+    const response = await api.get(`/orders/automation/abandoned?limit=${limit}`);
+    return response.data;
+  },
+
+  runAutomationSweep: async (): Promise<{ success: boolean; data: { abandonedCheckoutCount: number; inventoryLowAlertCount: number } }> => {
+    const response = await api.post('/orders/automation/run-sweep');
+    return response.data;
+  },
+
+  createCoupon: async (payload: {
+    code: string;
+    type: 'percentage' | 'fixed';
+    value: number;
+    minOrderAmount?: number;
+    usageLimit?: number;
+    startsAt?: string;
+    expiresAt?: string;
+  }): Promise<{ success: boolean; data: { coupon: Coupon } }> => {
+    const response = await api.post('/orders/seller/coupons', payload);
+    return response.data;
+  },
+
+  getSellerCoupons: async (): Promise<{ success: boolean; data: { coupons: Coupon[] } }> => {
+    const response = await api.get('/orders/seller/coupons');
+    return response.data;
+  },
+
+  createBundle: async (payload: {
+    name: string;
+    productIds: string[];
+    discountPercent: number;
+  }): Promise<{ success: boolean; data: { bundle: Bundle } }> => {
+    const response = await api.post('/orders/seller/bundles', payload);
+    return response.data;
+  },
+
+  getSellerBundles: async (): Promise<{ success: boolean; data: { bundles: Bundle[] } }> => {
+    const response = await api.get('/orders/seller/bundles');
     return response.data;
   },
 };

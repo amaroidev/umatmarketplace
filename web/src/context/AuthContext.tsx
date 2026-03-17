@@ -10,7 +10,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   register: (data: RegisterData) => Promise<void>;
   login: (data: LoginData) => Promise<void>;
-  googleLogin: (credential: string, role?: 'buyer' | 'seller') => Promise<void>;
+  googleLogin: (credential: string, role?: 'buyer' | 'seller') => Promise<{ needsProfileCompletion: boolean; isNewUser?: boolean }>;
   logout: () => Promise<void>;
   updateProfile: (data: UpdateProfileData) => Promise<void>;
   changePassword: (data: ChangePasswordData) => Promise<void>;
@@ -55,7 +55,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem('user', JSON.stringify(newUser));
     setToken(newToken);
     setUser(newUser);
-    toast.success('Account created successfully!');
+    toast.success('Account created successfully!', { duration: 1400 });
   }, []);
 
   const login = useCallback(async (data: LoginData) => {
@@ -66,7 +66,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem('user', JSON.stringify(newUser));
     setToken(newToken);
     setUser(newUser);
-    toast.success(`Welcome back, ${newUser.name}!`);
+    toast.success(`Welcome back, ${newUser.name}!`, { duration: 1200 });
   }, []);
 
   const googleLogin = useCallback(async (credential: string, role: 'buyer' | 'seller' = 'buyer') => {
@@ -77,7 +77,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem('user', JSON.stringify(newUser));
     setToken(newToken);
     setUser(newUser);
-    toast.success(`Welcome, ${newUser.name}!`);
+    toast.success(`Welcome, ${newUser.name}!`, { duration: 1200 });
+
+    return {
+      needsProfileCompletion: !!response.data?.needsProfileCompletion,
+      isNewUser: !!response.data?.isNewUser,
+    };
   }, []);
 
   const logout = useCallback(async () => {
@@ -90,7 +95,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem('user');
     setToken(null);
     setUser(null);
-    toast.success('Logged out successfully');
+    toast.success('Logged out successfully', { duration: 900 });
   }, []);
 
   const updateProfile = useCallback(async (data: UpdateProfileData) => {
@@ -98,12 +103,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const updatedUser = response.data.user;
     setUser(updatedUser);
     localStorage.setItem('user', JSON.stringify(updatedUser));
-    toast.success('Profile updated successfully');
+    toast.success('Profile updated successfully', { duration: 1200 });
   }, []);
 
   const changePassword = useCallback(async (data: ChangePasswordData) => {
     await authService.changePassword(data);
-    toast.success('Password changed successfully');
+    toast.success('Password changed successfully', { duration: 1200 });
   }, []);
 
   const refreshUser = useCallback(async () => {

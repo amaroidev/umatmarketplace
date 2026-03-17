@@ -8,3 +8,5 @@ export { default as Transaction } from './Transaction';
 export { default as Review } from './Review';
 export { default as Notification } from './Notification';
 export { default as Dispute } from './Dispute';
+export { default as Coupon } from './Coupon';
+export { default as Bundle } from './Bundle';

@@ -32,6 +32,14 @@ const MyListings: React.FC = () => {
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [boostingId, setBoostingId] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
+  const [importWithImages, setImportWithImages] = useState(false);
+  const [previewingCSV, setPreviewingCSV] = useState(false);
+  const [pendingCSVFile, setPendingCSVFile] = useState<File | null>(null);
+  const [csvPreview, setCsvPreview] = useState<{ importMode: 'shopify' | 'generic'; headers: string[]; totalRows: number; estimatedValid: number; estimatedInvalid: number } | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [bulkUpdatingStatus, setBulkUpdatingStatus] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<{ mode: 'single' | 'bulk'; productId?: string; count?: number } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const statusFilter = searchParams.get('status') || '';
@@ -60,23 +68,54 @@ const MyListings: React.FC = () => {
     fetchListings();
   }, [statusFilter, page]);
 
+  useEffect(() => {
+    setSelectedIds([]);
+  }, [products]);
+
   const handleImportCSV = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    setPendingCSVFile(file);
+    setPreviewingCSV(true);
+    try {
+      const preview = await productService.previewCSV(file);
+      if (preview.success) {
+        setCsvPreview(preview.data);
+      }
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Failed to preview CSV');
+      setPendingCSVFile(null);
+      setPreviewingCSV(false);
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const runImportCSV = async () => {
+    if (!pendingCSVFile) return;
     setImporting(true);
     try {
-      const res = await productService.importCSV(file);
+      const res = await productService.importCSV(pendingCSVFile, { withImages: importWithImages });
       toast.success(res.message);
+      if (res.data.importMode) {
+        toast(`${res.data.importMode.toUpperCase()} import mode${res.data.withImages ? ` • ${res.data.imagesImported || 0} images imported` : ''}`);
+      }
       if (res.data.errors.length > 0) {
         toast.error(`${res.data.errors.length} items failed to import. Check console for details.`);
         console.error('Import Errors:', res.data.errors);
+      }
+      if (res.data.errors.length > 0) {
+        const sample = res.data.errors.slice(0, 5).map((e) => `Row ${e.row}: ${e.message}`).join('\n');
+        toast.error(`Sample errors:\n${sample}`);
       }
       fetchListings();
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Failed to import CSV');
     } finally {
       setImporting(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
+      setPendingCSVFile(null);
+      setCsvPreview(null);
+      setPreviewingCSV(false);
     }
   };
 
@@ -93,7 +132,10 @@ const MyListings: React.FC = () => {
   };
 
   const handleDelete = async (productId: string) => {
-    if (!window.confirm('Are you sure you want to delete this listing? This cannot be undone.')) return;
+    setConfirmDelete({ mode: 'single', productId });
+  };
+
+  const runSingleDelete = async (productId: string) => {
     setDeletingId(productId);
     try {
       await productService.deleteProduct(productId);
@@ -104,6 +146,7 @@ const MyListings: React.FC = () => {
     } finally {
       setDeletingId(null);
       setOpenMenu(null);
+      setConfirmDelete(null);
     }
   };
 
@@ -131,6 +174,59 @@ const MyListings: React.FC = () => {
     }
   };
 
+  const toggleSelect = (productId: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(productId) ? prev.filter((id) => id !== productId) : [...prev, productId]
+    );
+  };
+
+  const allSelected = products.length > 0 && selectedIds.length === products.length;
+
+  const toggleSelectAll = () => {
+    if (allSelected) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(products.map((p) => p._id));
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+    setConfirmDelete({ mode: 'bulk', count: selectedIds.length });
+  };
+
+  const runBulkDelete = async () => {
+    setBulkDeleting(true);
+    let deleted = 0;
+    for (const id of selectedIds) {
+      try {
+        await productService.deleteProduct(id);
+        deleted++;
+      } catch {
+      }
+    }
+    setBulkDeleting(false);
+    setSelectedIds([]);
+    toast.success(`Deleted ${deleted} listing${deleted === 1 ? '' : 's'}`);
+    setConfirmDelete(null);
+    fetchListings();
+  };
+
+  const handleBulkStatus = async (status: 'active' | 'draft' | 'sold') => {
+    if (selectedIds.length === 0) return;
+    setBulkUpdatingStatus(true);
+    try {
+      const res = await productService.bulkUpdateStatus(selectedIds, status);
+      toast.success(res.message || `Updated ${status}`);
+      await fetchListings();
+      setSelectedIds([]);
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Failed to update status');
+    } finally {
+      setBulkUpdatingStatus(false);
+    }
+  };
+
   const updateFilter = (key: string, value: string) => {
     const params = new URLSearchParams(searchParams);
     if (value) params.set(key, value); else params.delete(key);
@@ -152,6 +248,15 @@ const MyListings: React.FC = () => {
           )}
         </div>
         <div className="flex items-center gap-3">
+          <label className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.12em] text-earth-500">
+            <input
+              type="checkbox"
+              checked={importWithImages}
+              onChange={(e) => setImportWithImages(e.target.checked)}
+              className="h-3.5 w-3.5 accent-earth-900"
+            />
+            Import images
+          </label>
           <input
             type="file"
             accept=".csv"
@@ -205,6 +310,116 @@ const MyListings: React.FC = () => {
         ))}
       </div>
 
+      {products.length > 0 && (
+        <div className="mb-4 flex items-center justify-between border border-earth-200 bg-earth-50 px-4 py-2.5">
+          <label className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.14em] text-earth-600">
+            <input type="checkbox" checked={allSelected} onChange={toggleSelectAll} className="h-3.5 w-3.5 accent-earth-900" />
+            Select all ({products.length})
+          </label>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-earth-500">{selectedIds.length} selected</span>
+            <button
+              onClick={() => handleBulkStatus('active')}
+              disabled={selectedIds.length === 0 || bulkUpdatingStatus}
+              className="inline-flex items-center gap-1.5 border border-green-300 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-green-700 hover:bg-green-50 disabled:opacity-50"
+            >
+              Mark Active
+            </button>
+            <button
+              onClick={() => handleBulkStatus('draft')}
+              disabled={selectedIds.length === 0 || bulkUpdatingStatus}
+              className="inline-flex items-center gap-1.5 border border-yellow-300 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-yellow-700 hover:bg-yellow-50 disabled:opacity-50"
+            >
+              Mark Draft
+            </button>
+            <button
+              onClick={() => handleBulkStatus('sold')}
+              disabled={selectedIds.length === 0 || bulkUpdatingStatus}
+              className="inline-flex items-center gap-1.5 border border-earth-300 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-earth-700 hover:bg-earth-100 disabled:opacity-50"
+            >
+              Mark Sold
+            </button>
+            <button
+              onClick={handleBulkDelete}
+              disabled={selectedIds.length === 0 || bulkDeleting}
+              className="inline-flex items-center gap-1.5 border border-red-300 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-red-700 hover:bg-red-50 disabled:opacity-50"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              {bulkDeleting ? 'Deleting...' : 'Delete Selected'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {previewingCSV && csvPreview && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4">
+          <div className="w-full max-w-2xl border border-earth-200 bg-white p-6">
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-earth-400">CSV Preview</p>
+            <h3 className="mt-2 text-2xl font-black uppercase tracking-tight text-earth-900">Import summary</h3>
+            <div className="mt-5 grid gap-3 sm:grid-cols-4">
+              <div className="border border-earth-100 p-3"><p className="text-[10px] text-earth-400">Mode</p><p className="text-sm font-bold text-earth-900 uppercase">{csvPreview.importMode}</p></div>
+              <div className="border border-earth-100 p-3"><p className="text-[10px] text-earth-400">Rows</p><p className="text-sm font-bold text-earth-900">{csvPreview.totalRows}</p></div>
+              <div className="border border-earth-100 p-3"><p className="text-[10px] text-earth-400">Estimated valid</p><p className="text-sm font-bold text-green-700">{csvPreview.estimatedValid}</p></div>
+              <div className="border border-earth-100 p-3"><p className="text-[10px] text-earth-400">Estimated invalid</p><p className="text-sm font-bold text-red-700">{csvPreview.estimatedInvalid}</p></div>
+            </div>
+            <div className="mt-4 border border-earth-100 p-3 max-h-40 overflow-auto">
+              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-earth-400 mb-2">Detected columns</p>
+              <p className="text-xs text-earth-600 leading-6">{csvPreview.headers.join(', ')}</p>
+            </div>
+            <div className="mt-5 flex items-center justify-end gap-2">
+              <button
+                onClick={() => { setPreviewingCSV(false); setCsvPreview(null); setPendingCSVFile(null); }}
+                className="border border-earth-200 px-4 py-2 text-xs font-bold uppercase tracking-[0.12em] text-earth-600"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={runImportCSV}
+                disabled={importing}
+                className="bg-earth-900 px-4 py-2 text-xs font-bold uppercase tracking-[0.12em] text-white disabled:opacity-50"
+              >
+                {importing ? 'Importing...' : 'Confirm Import'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {confirmDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4">
+          <div className="w-full max-w-md border border-earth-200 bg-white p-6">
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-earth-400">Confirm delete</p>
+            <h3 className="mt-2 text-xl font-black uppercase tracking-tight text-earth-900">This cannot be undone</h3>
+            <p className="mt-3 text-sm text-earth-600">
+              {confirmDelete.mode === 'single'
+                ? 'Delete this listing permanently?'
+                : `Delete ${confirmDelete.count || selectedIds.length} selected listings permanently?`}
+            </p>
+            <div className="mt-6 flex items-center justify-end gap-2">
+              <button
+                onClick={() => setConfirmDelete(null)}
+                className="border border-earth-200 px-4 py-2 text-xs font-bold uppercase tracking-[0.12em] text-earth-600"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  if (confirmDelete.mode === 'single' && confirmDelete.productId) {
+                    runSingleDelete(confirmDelete.productId);
+                    return;
+                  }
+                  runBulkDelete();
+                }}
+                disabled={bulkDeleting || !!deletingId}
+                className="bg-red-600 px-4 py-2 text-xs font-bold uppercase tracking-[0.12em] text-white disabled:opacity-50"
+              >
+                {bulkDeleting || deletingId ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Listings */}
       {loading ? (
         <LoadingSpinner text="Loading your listings..." />
@@ -233,6 +448,12 @@ const MyListings: React.FC = () => {
                 key={product._id}
                 className="flex items-center gap-4 bg-white p-4 hover:bg-earth-50 transition-colors"
               >
+                <input
+                  type="checkbox"
+                  checked={selectedIds.includes(product._id)}
+                  onChange={() => toggleSelect(product._id)}
+                  className="h-4 w-4 accent-earth-900"
+                />
                 {/* Image */}
                 <Link to={`/products/${product._id}`} className="flex-shrink-0">
                   <img src={mainImage} alt={product.title} className="w-16 h-16 object-cover" />

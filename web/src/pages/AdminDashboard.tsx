@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import adminService, { AdminDashboardStats, DisputePopulated } from '../services/admin.service';
+import orderService from '../services/order.service';
 import { Button, Input, LoadingSpinner } from '../components/ui';
 import { OrderPopulated, ProductPopulated, User } from '../types';
 import { Link } from 'react-router-dom';
@@ -60,6 +61,7 @@ const AdminDashboard: React.FC = () => {
   const [selectedDispute, setSelectedDispute] = useState<DisputePopulated | null>(null);
   const [disputeStatus, setDisputeStatus] = useState('');
   const [adminNote, setAdminNote] = useState('');
+  const [runningAutomation, setRunningAutomation] = useState(false);
 
   const fetchStats = async () => {
     try {
@@ -112,6 +114,20 @@ const AdminDashboard: React.FC = () => {
       if (res.success) setModerationQueue(res.data);
     } catch {
       toast.error('Failed to load moderation queue');
+    }
+  };
+
+  const runAutomationSweep = async () => {
+    setRunningAutomation(true);
+    try {
+      const res = await orderService.runAutomationSweep();
+      if (res.success) {
+        toast.success(`Sweep done: ${res.data.abandonedCheckoutCount} abandoned + ${res.data.inventoryLowAlertCount} low-stock alerts`);
+      }
+    } catch {
+      toast.error('Failed to run automation sweep');
+    } finally {
+      setRunningAutomation(false);
     }
   };
 
@@ -283,7 +299,12 @@ const AdminDashboard: React.FC = () => {
                   <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-earth-400">Moderation queue</p>
                   <h2 className="mt-1 text-sm font-black uppercase tracking-[0.12em] text-earth-900">Flagged listings</h2>
                 </div>
-                <Button size="sm" variant="outline" onClick={fetchModerationQueue}>Refresh</Button>
+                <div className="flex items-center gap-2">
+                  <Button size="sm" variant="outline" onClick={runAutomationSweep} disabled={runningAutomation}>
+                    {runningAutomation ? 'Running...' : 'Run sweep'}
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={fetchModerationQueue}>Refresh</Button>
+                </div>
               </div>
               <div className="divide-y divide-earth-100">
                 {moderationQueue.products.length === 0 ? (

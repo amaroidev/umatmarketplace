@@ -23,6 +23,7 @@
       },
       "package": "com.campusmarketplace.app"
     },
+    "scheme": "campusmarketplace",
     "web": {
       "favicon": "./assets/favicon.png"
     },

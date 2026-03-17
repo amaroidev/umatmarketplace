@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import Product, { IProductDocument } from '../models/Product';
 import Category from '../models/Category';
 import User from '../models/User';
+import Order from '../models/Order';
 import ApiError from '../utils/ApiError';
 import {
   uploadMultipleToCloudinary,
@@ -69,6 +70,12 @@ class ProductService {
       pickupLocation?: string;
       tags?: string[];
       status?: string;
+      stock?: number;
+      availableFrom?: string;
+      availableUntil?: string;
+      flashSalePrice?: number;
+      flashSaleEndsAt?: string;
+      images?: { url: string; publicId: string }[];
     },
     files?: Express.Multer.File[]
   ): Promise<IProductDocument> {
@@ -85,6 +92,9 @@ class ProductService {
 
     // Upload images if provided
     let images: { url: string; publicId: string }[] = [];
+    if (data.images && data.images.length > 0) {
+      images = data.images.slice(0, 5);
+    }
     if (files && files.length > 0) {
       images = await uploadMultipleToCloudinary(files);
     }
@@ -109,6 +119,11 @@ class ProductService {
       deliveryOption: data.deliveryOption || 'pickup',
       pickupLocation: data.pickupLocation || '',
       tags,
+      stock: data.stock ?? 1,
+      availableFrom: data.availableFrom ? new Date(data.availableFrom) : undefined,
+      availableUntil: data.availableUntil ? new Date(data.availableUntil) : undefined,
+      flashSalePrice: data.flashSalePrice,
+      flashSaleEndsAt: data.flashSaleEndsAt ? new Date(data.flashSaleEndsAt) : undefined,
     });
 
     await product.save();
@@ -116,7 +131,7 @@ class ProductService {
     // Populate and return
     return product.populate([
       { path: 'category', select: 'name slug icon' },
-      { path: 'seller', select: 'name avatar isVerified location' },
+      { path: 'seller', select: 'name storeName brandName avatar isVerified location' },
     ]);
   }
 
@@ -222,7 +237,7 @@ class ProductService {
         .skip(skip)
         .limit(limit)
         .populate('category', 'name slug icon')
-        .populate('seller', 'name avatar isVerified location')
+        .populate('seller', 'name storeName brandName avatar isVerified location')
         .lean(),
       Product.countDocuments(query),
     ]);
@@ -251,7 +266,7 @@ class ProductService {
 
     const product = await Product.findById(productId)
       .populate('category', 'name slug icon description')
-      .populate('seller', 'name avatar isVerified location bio createdAt');
+      .populate('seller', 'name storeName brandName avatar isVerified location bio createdAt');
 
     if (!product) {
       throw ApiError.notFound('Product not found');
@@ -282,6 +297,11 @@ class ProductService {
       deliveryOption?: string;
       pickupLocation?: string;
       tags?: string[];
+      stock?: number;
+      availableFrom?: string;
+      availableUntil?: string;
+      flashSalePrice?: number;
+      flashSaleEndsAt?: string;
     },
     files?: Express.Multer.File[]
   ): Promise<IProductDocument> {
@@ -338,6 +358,11 @@ class ProductService {
       'deliveryOption',
       'pickupLocation',
       'tags',
+      'stock',
+      'availableFrom',
+      'availableUntil',
+      'flashSalePrice',
+      'flashSaleEndsAt',
     ];
 
     for (const field of allowedFields) {
@@ -366,7 +391,7 @@ class ProductService {
 
     return product.populate([
       { path: 'category', select: 'name slug icon' },
-      { path: 'seller', select: 'name avatar isVerified location' },
+      { path: 'seller', select: 'name storeName brandName avatar isVerified location' },
     ]);
   }
 
@@ -410,7 +435,7 @@ class ProductService {
 
     return product.populate([
       { path: 'category', select: 'name slug icon' },
-      { path: 'seller', select: 'name avatar isVerified location' },
+      { path: 'seller', select: 'name storeName brandName avatar isVerified location' },
     ]);
   }
 
@@ -491,7 +516,7 @@ class ProductService {
 
     return product.populate([
       { path: 'category', select: 'name slug icon' },
-      { path: 'seller', select: 'name avatar isVerified location' },
+      { path: 'seller', select: 'name storeName brandName avatar isVerified location' },
     ]);
   }
 
@@ -503,7 +528,7 @@ class ProductService {
       .sort({ createdAt: -1 })
       .limit(limit)
       .populate('category', 'name slug icon')
-      .populate('seller', 'name avatar isVerified location');
+      .populate('seller', 'name storeName brandName avatar isVerified location');
   }
 
   /**
@@ -514,7 +539,7 @@ class ProductService {
       .sort({ createdAt: -1 })
       .limit(limit)
       .populate('category', 'name slug icon')
-      .populate('seller', 'name avatar isVerified location');
+      .populate('seller', 'name storeName brandName avatar isVerified location');
   }
 
   /**
@@ -574,7 +599,7 @@ class ProductService {
       .sort({ views: -1, createdAt: -1 })
       .limit(limit)
       .populate('category', 'name slug icon')
-      .populate('seller', 'name avatar isVerified location');
+      .populate('seller', 'name storeName brandName avatar isVerified location');
   }
 
   /**
@@ -596,8 +621,257 @@ class ProductService {
       .sort({ createdAt: -1 })
       .limit(limit)
       .populate('category', 'name slug icon')
-      .populate('seller', 'name avatar isVerified location');
+      .populate('seller', 'name storeName brandName avatar isVerified location');
   }
+
+  async getRecommendations(
+    userId?: string,
+    productId?: string,
+    limit: number = 8
+  ): Promise<IProductDocument[]> {
+    const safeLimit = Math.min(20, Math.max(1, limit));
+    const baseQuery: Record<string, any> = { status: 'active', isFlagged: false };
+
+    // If product context exists, use category and tags similarity first
+    if (productId && mongoose.Types.ObjectId.isValid(productId)) {
+      const context = await Product.findById(productId).select('category tags');
+      if (context) {
+        const tagQuery = context.tags.length > 0 ? { tags: { $in: context.tags.slice(0, 5) } } : {};
+        const scoped = await Product.find({
+          ...baseQuery,
+          _id: { $ne: productId },
+          $or: [{ category: context.category }, tagQuery],
+        })
+          .sort({ views: -1, createdAt: -1 })
+          .limit(safeLimit)
+          .populate('category', 'name slug icon')
+          .populate('seller', 'name storeName brandName avatar isVerified location');
+        if (scoped.length >= safeLimit) return scoped;
+      }
+    }
+
+    // If user context exists, infer from saved items categories
+    if (userId && mongoose.Types.ObjectId.isValid(userId)) {
+      const user = await User.findById(userId).select('savedItems');
+      if (user && user.savedItems.length > 0) {
+        const savedProducts = await Product.find({ _id: { $in: user.savedItems } }).select('category');
+        const categoryIds = [...new Set(savedProducts.map((p) => p.category.toString()))]
+          .map((id) => new mongoose.Types.ObjectId(id));
+        if (categoryIds.length > 0) {
+          const personalized = await Product.find({
+            ...baseQuery,
+            ...(productId ? { _id: { $ne: productId } } : {}),
+            category: { $in: categoryIds },
+          })
+            .sort({ views: -1, createdAt: -1 })
+            .limit(safeLimit)
+            .populate('category', 'name slug icon')
+            .populate('seller', 'name storeName brandName avatar isVerified location');
+          if (personalized.length > 0) return personalized;
+        }
+      }
+    }
+
+    // Fallback to trending
+    return Product.find(baseQuery)
+      .sort({ views: -1, createdAt: -1 })
+      .limit(safeLimit)
+      .populate('category', 'name slug icon')
+      .populate('seller', 'name storeName brandName avatar isVerified location');
+  }
+
+  async getPriceInsights(productId: string): Promise<{
+    productPrice: number;
+    min: number;
+    max: number;
+    average: number;
+    median: number;
+    sampleSize: number;
+    dealLabel: 'great_deal' | 'fair_price' | 'premium';
+  }> {
+    const product = await Product.findById(productId).select('price category');
+    if (!product) throw ApiError.notFound('Product not found');
+
+    const peers = await Product.find({
+      category: product.category,
+      status: { $in: ['active', 'sold'] },
+      isFlagged: false,
+    })
+      .select('price')
+      .sort({ price: 1 })
+      .lean();
+
+    const prices = peers.map((p) => p.price).filter((p) => typeof p === 'number');
+    if (prices.length === 0) {
+      return {
+        productPrice: product.price,
+        min: product.price,
+        max: product.price,
+        average: product.price,
+        median: product.price,
+        sampleSize: 1,
+        dealLabel: 'fair_price',
+      };
+    }
+
+    const min = prices[0];
+    const max = prices[prices.length - 1];
+    const average = prices.reduce((sum, n) => sum + n, 0) / prices.length;
+    const middle = Math.floor(prices.length / 2);
+    const median = prices.length % 2 === 0 ? (prices[middle - 1] + prices[middle]) / 2 : prices[middle];
+
+    let dealLabel: 'great_deal' | 'fair_price' | 'premium' = 'fair_price';
+    if (product.price <= average * 0.88) dealLabel = 'great_deal';
+    if (product.price >= average * 1.15) dealLabel = 'premium';
+
+    return {
+      productPrice: product.price,
+      min,
+      max,
+      average,
+      median,
+      sampleSize: prices.length,
+      dealLabel,
+    };
+  }
+
+  async getLiveSoldFeed(limit: number = 10): Promise<any[]> {
+    const safeLimit = Math.min(30, Math.max(1, limit));
+    const soldOrders = await Order.find({ status: 'completed' })
+      .sort({ completedAt: -1, updatedAt: -1 })
+      .limit(safeLimit)
+      .populate('seller', 'name isVerified')
+      .lean();
+
+    return soldOrders.map((order: any) => ({
+      orderId: order._id,
+      orderNumber: order.orderNumber,
+      completedAt: order.completedAt || order.updatedAt,
+      seller: order.seller,
+      itemTitle: order.items?.[0]?.title || 'Item',
+      itemPrice: order.items?.[0]?.price || order.totalAmount,
+      totalAmount: order.totalAmount,
+    }));
+  }
+
+  async getTopSellers(limit: number = 10): Promise<any[]> {
+    const safeLimit = Math.min(20, Math.max(1, limit));
+
+    const leaderboard = await Order.aggregate([
+      { $match: { status: 'completed' } },
+      {
+        $group: {
+          _id: '$seller',
+          totalRevenue: { $sum: '$totalAmount' },
+          totalSales: { $sum: 1 },
+          avgOrderValue: { $avg: '$totalAmount' },
+        },
+      },
+      { $sort: { totalRevenue: -1, totalSales: -1 } },
+      { $limit: safeLimit },
+    ]);
+
+    const sellerIds = leaderboard.map((s) => s._id);
+    const sellers = await User.find({ _id: { $in: sellerIds } }).select('name avatar isVerified responseTimeMinutes');
+    const sellerMap = new Map(sellers.map((s) => [s._id.toString(), s]));
+
+    return leaderboard.map((entry) => ({
+      seller: sellerMap.get(entry._id.toString()) || null,
+      totalRevenue: entry.totalRevenue,
+      totalSales: entry.totalSales,
+      avgOrderValue: entry.avgOrderValue,
+    }));
+  }
+
+  async getCategorySpotlights(limit: number = 6): Promise<any[]> {
+    const safeLimit = Math.min(12, Math.max(1, limit));
+    const categories = await Category.find({ isActive: true }).select('name slug icon').lean();
+
+    const counts = await Product.aggregate([
+      { $match: { status: 'active', isFlagged: false } },
+      { $group: { _id: '$category', count: { $sum: 1 }, avgPrice: { $avg: '$price' } } },
+      { $sort: { count: -1 } },
+      { $limit: safeLimit },
+    ]);
+
+    const categoryMap = new Map(categories.map((c: any) => [c._id.toString(), c]));
+    return counts
+      .map((item) => ({
+        category: categoryMap.get(item._id.toString()),
+        listingCount: item.count,
+        avgPrice: item.avgPrice,
+      }))
+      .filter((item) => !!item.category);
+  }
+
+  async getCollections(limit: number = 6): Promise<any[]> {
+    const safeLimit = Math.min(20, Math.max(1, limit));
+    const categories = await Category.find({ isActive: true }).select('name slug icon').lean();
+    const counts = await Product.aggregate([
+      { $match: { status: 'active', isFlagged: false } },
+      { $group: { _id: '$category', listingCount: { $sum: 1 }, avgPrice: { $avg: '$price' } } },
+      { $sort: { listingCount: -1 } },
+      { $limit: safeLimit },
+    ]);
+
+    const categoryMap = new Map(categories.map((c: any) => [c._id.toString(), c]));
+    const collections: any[] = [];
+
+    for (const item of counts) {
+      const category = categoryMap.get(item._id.toString());
+      if (!category) continue;
+
+      const hero = await Product.findOne({
+        category: category._id,
+        status: 'active',
+        isFlagged: false,
+      })
+        .sort({ views: -1, createdAt: -1 })
+        .select('title price images')
+        .lean();
+
+      collections.push({
+        slug: `${category.slug}-essentials`,
+        title: `${category.name} Essentials`,
+        description: `Most active ${category.name.toLowerCase()} listings this week on campus.`,
+        categorySlug: category.slug,
+        listingCount: item.listingCount,
+        avgPrice: item.avgPrice,
+        hero: hero
+          ? {
+              productId: hero._id,
+              title: hero.title,
+              price: hero.price,
+              image: hero.images?.[0]?.url || null,
+            }
+          : null,
+      });
+    }
+
+    return collections;
+  }
+
+  async getCollectionBySlug(slug: string, productLimit: number = 24): Promise<any> {
+    const collections = await this.getCollections(30);
+    const collection = collections.find((item) => item.slug === slug);
+    if (!collection) {
+      throw ApiError.notFound('Collection not found');
+    }
+
+    const productsResult = await this.getProducts({
+      category: collection.categorySlug,
+      sort: 'popular',
+      page: 1,
+      limit: Math.min(50, Math.max(1, productLimit)),
+    });
+
+    return {
+      ...collection,
+      products: productsResult.products,
+      pagination: productsResult.pagination,
+    };
+  }
+
   /**
    * Duplicate a product
    */

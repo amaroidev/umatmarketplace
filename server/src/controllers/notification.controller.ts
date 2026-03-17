@@ -14,16 +14,43 @@ export const subscribeToPush = async (
 ): Promise<void> => {
   try {
     const subscription = req.body?.subscription || req.body;
-    
-    if (!subscription || !subscription.endpoint) {
+
+    const hasWebSubscription = !!subscription?.endpoint;
+    const hasExpoSubscription = !!subscription?.expoPushToken;
+
+    if (!subscription || (!hasWebSubscription && !hasExpoSubscription)) {
       res.status(400).json({ success: false, message: 'Invalid subscription object' });
       return;
     }
 
-    // Add subscription to user
-    await User.findByIdAndUpdate(req.user!._id, {
-      $addToSet: { pushSubscriptions: subscription }
-    });
+    if (hasExpoSubscription) {
+      await User.findByIdAndUpdate(req.user!._id, {
+        $pull: { pushSubscriptions: { expoPushToken: subscription.expoPushToken } },
+      });
+      await User.findByIdAndUpdate(req.user!._id, {
+        $addToSet: {
+          pushSubscriptions: {
+            kind: 'expo',
+            expoPushToken: subscription.expoPushToken,
+            platform: subscription.platform,
+            deviceId: subscription.deviceId,
+          },
+        },
+      });
+    } else {
+      await User.findByIdAndUpdate(req.user!._id, {
+        $pull: { pushSubscriptions: { endpoint: subscription.endpoint } },
+      });
+      await User.findByIdAndUpdate(req.user!._id, {
+        $addToSet: {
+          pushSubscriptions: {
+            kind: 'web',
+            endpoint: subscription.endpoint,
+            keys: subscription.keys,
+          },
+        },
+      });
+    }
 
     res.status(200).json({ success: true, message: 'Subscribed to push notifications' });
   } catch (error) {
@@ -42,10 +69,18 @@ export const unsubscribeFromPush = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const { endpoint } = req.body;
-    
-    if (!endpoint) {
-      res.status(400).json({ success: false, message: 'Endpoint is required' });
+    const { endpoint, expoPushToken } = req.body;
+
+    if (!endpoint && !expoPushToken) {
+      res.status(400).json({ success: false, message: 'Endpoint or expoPushToken is required' });
+      return;
+    }
+
+    if (expoPushToken) {
+      await User.findByIdAndUpdate(req.user!._id, {
+        $pull: { pushSubscriptions: { expoPushToken } }
+      });
+      res.status(200).json({ success: true, message: 'Unsubscribed from push notifications' });
       return;
     }
 

@@ -118,3 +118,34 @@ export const optionalAuth = async (
     next();
   }
 };
+
+/**
+ * Require minimum profile completion before sensitive actions.
+ * - phone is required for all users
+ * - for selling actions, seller/admin should also set storeName or brandName
+ */
+export const ensureProfileComplete = (options?: { forSelling?: boolean }) => {
+  return (req: Request, _res: Response, next: NextFunction): void => {
+    if (!req.user) {
+      next(ApiError.unauthorized('Authentication required.'));
+      return;
+    }
+
+    const phone = (req.user.phone || '').trim();
+    if (phone.length < 10) {
+      next(ApiError.badRequest('Complete your profile first: add a valid phone number.'));
+      return;
+    }
+
+    if (options?.forSelling && ['seller', 'admin'].includes(req.user.role)) {
+      const storeName = (req.user.storeName || '').trim();
+      const brandName = (req.user.brandName || '').trim();
+      if (!storeName && !brandName) {
+        next(ApiError.badRequest('Complete your profile first: add store name or brand name.'));
+        return;
+      }
+    }
+
+    next();
+  };
+};

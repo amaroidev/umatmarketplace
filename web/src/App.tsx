@@ -29,6 +29,7 @@ import AdminDashboardPage from './pages/AdminDashboard';
 import SettingsPage from './pages/Settings';
 import SellerAnalyticsPage from './pages/SellerAnalytics';
 import DisputeCenterPage from './pages/DisputeCenter';
+import CollectionDetailPage from './pages/CollectionDetail';
 
 
 // Redirect helpers for legacy routes
@@ -177,6 +178,7 @@ const App: React.FC = () => {
         <Route path="/search" element={<SearchRedirect />} />
         <Route path="/category/:slug" element={<CategoryRedirect />} />
         <Route path="/categories" element={<CategoriesPage />} />
+        <Route path="/collections/:slug" element={<CollectionDetailPage />} />
 
         <Route
           path="/saved"

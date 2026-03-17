@@ -31,6 +31,7 @@ const Checkout: React.FC = () => {
   const [pickupLocation, setPickupLocation] = useState('');
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [note, setNote] = useState('');
+  const [couponCode, setCouponCode] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('momo_mtn');
 
   useEffect(() => {
@@ -77,6 +78,7 @@ const Checkout: React.FC = () => {
         productId: product._id,
         quantity: 1,
         deliveryMethod,
+        couponCode: couponCode.trim() || undefined,
         pickupLocation: deliveryMethod === 'pickup' ? pickupLocation : undefined,
         deliveryAddress: deliveryMethod === 'delivery' ? deliveryAddress : undefined,
         note: note.trim() || undefined,
@@ -153,7 +155,7 @@ const Checkout: React.FC = () => {
               <div className="flex-1 min-w-0">
                 <h3 className="font-bold text-earth-900 text-sm truncate">{product.title}</h3>
                 <p className="text-xs text-earth-500 mt-0.5">
-                  Sold by {seller.name}
+                  Sold by {(seller as any).storeName || (seller as any).brandName || seller.name}
                   {seller.isVerified && <span className="text-moss-500 ml-1">&#10003;</span>}
                 </p>
                 <p className="text-lg font-black text-earth-900 mt-1">
@@ -260,6 +262,17 @@ const Checkout: React.FC = () => {
 
           {/* Note */}
           <div className="border border-earth-200 bg-white p-5">
+            <p className="text-xs font-bold uppercase tracking-[0.15em] text-earth-500 mb-3">
+              Coupon code (optional)
+            </p>
+            <input
+              type="text"
+              value={couponCode}
+              onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+              placeholder="e.g. CAMPUS10"
+              className="w-full border-b border-earth-300 bg-transparent py-2 text-sm focus:outline-none focus:border-earth-900 placeholder:text-earth-300 mb-5"
+            />
+
             <p className="text-xs font-bold uppercase tracking-[0.15em] text-earth-500 mb-3">
               Note to Seller (optional)
             </p>

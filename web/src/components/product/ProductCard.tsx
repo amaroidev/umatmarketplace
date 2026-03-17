@@ -23,7 +23,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onSavedChange }) => 
   const { isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
 
-  const sellerName = typeof product.seller === 'string' ? 'Seller' : product.seller.name;
+  const sellerName = typeof product.seller === 'string' ? 'Seller' : (product.seller.storeName || product.seller.brandName || product.seller.name);
   const sellerVerified = typeof product.seller === 'string' ? false : product.seller.isVerified;
 
   const placeholderImage = `https://placehold.co/400x300/f3f5f7/9ba3a7?text=${encodeURIComponent(product.title.slice(0, 15))}`;

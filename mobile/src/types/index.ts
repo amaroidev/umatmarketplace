@@ -1,6 +1,8 @@
 export interface User {
   _id: string;
   name: string;
+  storeName?: string;
+  brandName?: string;
   email: string;
   phone: string;
   role: 'buyer' | 'seller' | 'admin';
@@ -24,6 +26,8 @@ export interface ProductCategory {
 export interface ProductSeller {
   _id: string;
   name: string;
+  storeName?: string;
+  brandName?: string;
   avatar?: string;
   isVerified?: boolean;
   location?: string;

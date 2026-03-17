@@ -45,6 +45,25 @@ const notificationService = {
     const response = await api.post('/notifications/push/test');
     return response.data;
   },
+
+  subscribeToPush: async (payload: {
+    endpoint?: string;
+    keys?: { p256dh: string; auth: string };
+    expoPushToken?: string;
+    platform?: string;
+    deviceId?: string;
+  }): Promise<{ success: boolean; message: string }> => {
+    const response = await api.post('/notifications/push/subscribe', payload);
+    return response.data;
+  },
+
+  unsubscribeFromPush: async (payload: {
+    endpoint?: string;
+    expoPushToken?: string;
+  }): Promise<{ success: boolean; message: string }> => {
+    const response = await api.post('/notifications/push/unsubscribe', payload);
+    return response.data;
+  },
 };
 
 export default notificationService;

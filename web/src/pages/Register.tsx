@@ -41,6 +41,7 @@ const RegisterPage: React.FC = () => {
   const [showConfirm, setShowConfirm] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [step, setStep] = useState<Step>(1);
+  const [roleShake, setRoleShake] = useState(false);
 
   const {
     register,
@@ -55,6 +56,7 @@ const RegisterPage: React.FC = () => {
   });
 
   const selectedRole = watch('role');
+  const isRoleChosen = selectedRole === 'buyer' || selectedRole === 'seller';
 
   const goNext = async () => {
     let fields: (keyof RegisterFormData)[] = [];
@@ -83,7 +85,10 @@ const RegisterPage: React.FC = () => {
     if (credentialResponse.credential) {
       setIsSubmitting(true);
       try {
-        await googleLogin(credentialResponse.credential, selectedRole);
+        const result = await googleLogin(credentialResponse.credential, selectedRole);
+        if (result.needsProfileCompletion) {
+          toast('Great, account created. Continue setup by completing profile details.');
+        }
         navigate('/');
       } catch (err: any) {
         toast.error(err.response?.data?.message || 'Google registration failed');
@@ -91,6 +96,14 @@ const RegisterPage: React.FC = () => {
         setIsSubmitting(false);
       }
     }
+  };
+
+  const handleLockedGoogleTap = () => {
+    if (isRoleChosen) return;
+    setRoleShake(false);
+    window.requestAnimationFrame(() => setRoleShake(true));
+    setTimeout(() => setRoleShake(false), 360);
+    toast('Choose Buy or Sell first to continue with Google.');
   };
 
   return (
@@ -146,7 +159,7 @@ const RegisterPage: React.FC = () => {
             {/* ── STEP 1: Role ── */}
             {step === 1 && (
               <div className="mt-10">
-                <div className="grid grid-cols-2 gap-3 mb-10">
+                <div className={`grid grid-cols-2 gap-3 mb-10 ${roleShake ? 'animate-role-shake' : ''}`}>
                   <button
                     type="button"
                     onClick={() => setValue('role', 'buyer')}
@@ -180,7 +193,8 @@ const RegisterPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={goNext}
-                  className="group flex w-full items-center justify-between bg-earth-900 px-6 py-4 text-sm font-bold uppercase tracking-[0.18em] text-white transition-all hover:bg-earth-700"
+                  disabled={!isRoleChosen}
+                  className="group flex w-full items-center justify-between bg-earth-900 px-6 py-4 text-sm font-bold uppercase tracking-[0.18em] text-white transition-all hover:bg-earth-700 disabled:opacity-45 disabled:cursor-not-allowed"
                 >
                   <span>Continue with Email</span>
                   <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
@@ -193,15 +207,35 @@ const RegisterPage: React.FC = () => {
                 </div>
 
                 <div className="mt-6 flex justify-center">
-                  <GoogleLogin
-                    onSuccess={handleGoogleSuccess}
-                    onError={() => toast.error('Google Registration failed')}
-                    useOneTap={false}
-                    shape="rectangular"
-                    theme="outline"
-                    size="large"
-                    text="continue_with"
-                  />
+                  <div className="w-full max-w-[320px]">
+                    <p className="mb-2 text-center text-[10px] font-bold uppercase tracking-[0.18em] text-earth-400">
+                      Step 1: choose role to continue
+                    </p>
+                    <div
+                      className="flex justify-center"
+                      onClick={handleLockedGoogleTap}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if ((e.key === 'Enter' || e.key === ' ') && !isRoleChosen) {
+                          e.preventDefault();
+                          handleLockedGoogleTap();
+                        }
+                      }}
+                    >
+                      <div className={`${!isRoleChosen ? 'pointer-events-none opacity-45 grayscale' : ''} flex justify-center`}>
+                        <GoogleLogin
+                          onSuccess={handleGoogleSuccess}
+                          onError={() => toast.error('Google sign-up could not start. Check browser/origin settings and try again.')}
+                          useOneTap={false}
+                          shape="rectangular"
+                          theme="outline"
+                          size="large"
+                          text="continue_with"
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}

@@ -101,6 +101,34 @@
   }
 }
 
+@keyframes role-shake {
+  0%,
+  100% { transform: translateX(0); }
+  20% { transform: translateX(-4px); }
+  40% { transform: translateX(4px); }
+  60% { transform: translateX(-3px); }
+  80% { transform: translateX(3px); }
+}
+
+@keyframes fade-up-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-role-shake {
+  animation: role-shake 320ms ease-in-out;
+}
+
+.animate-fade-up-in {
+  animation: fade-up-in 420ms ease-out both;
+}
+
 /* Dark mode */
 .dark body {
   @apply bg-gray-900 text-gray-100;

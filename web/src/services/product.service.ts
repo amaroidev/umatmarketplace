@@ -11,6 +11,11 @@ export interface CreateProductData {
   pickupLocation?: string;
   tags?: string[];
   status?: string;
+  stock?: number;
+  availableFrom?: string;
+  availableUntil?: string;
+  flashSalePrice?: number;
+  flashSaleEndsAt?: string;
   images?: File[];
 }
 
@@ -24,6 +29,11 @@ export interface UpdateProductData {
   deliveryOption?: string;
   pickupLocation?: string;
   tags?: string[];
+  stock?: number;
+  availableFrom?: string;
+  availableUntil?: string;
+  flashSalePrice?: number;
+  flashSaleEndsAt?: string;
   images?: File[];
 }
 
@@ -38,6 +48,20 @@ interface ApiProductListResponse {
   message: string;
   data: ProductPopulated[];
   pagination: PaginationInfo;
+}
+
+interface PriceInsightsResponse {
+  success: boolean;
+  message: string;
+  data: {
+    productPrice: number;
+    min: number;
+    max: number;
+    average: number;
+    median: number;
+    sampleSize: number;
+    dealLabel: 'great_deal' | 'fair_price' | 'premium';
+  };
 }
 
 const productService = {
@@ -111,6 +135,44 @@ const productService = {
     return response.data;
   },
 
+  getRecommendations: async (params?: { productId?: string; limit?: number }): Promise<{ success: boolean; data: ProductPopulated[] }> => {
+    const query = new URLSearchParams();
+    if (params?.productId) query.set('productId', params.productId);
+    if (params?.limit) query.set('limit', String(params.limit));
+    const response = await api.get(`/products/recommendations${query.toString() ? `?${query.toString()}` : ''}`);
+    return response.data;
+  },
+
+  getPriceInsights: async (productId: string): Promise<PriceInsightsResponse> => {
+    const response = await api.get(`/products/${productId}/price-insights`);
+    return response.data;
+  },
+
+  getSoldFeed: async (limit?: number): Promise<{ success: boolean; data: any[] }> => {
+    const response = await api.get(`/products/social/sold-feed${limit ? `?limit=${limit}` : ''}`);
+    return response.data;
+  },
+
+  getTopSellers: async (limit?: number): Promise<{ success: boolean; data: any[] }> => {
+    const response = await api.get(`/products/social/top-sellers${limit ? `?limit=${limit}` : ''}`);
+    return response.data;
+  },
+
+  getCategorySpotlights: async (limit?: number): Promise<{ success: boolean; data: any[] }> => {
+    const response = await api.get(`/products/content/category-spotlights${limit ? `?limit=${limit}` : ''}`);
+    return response.data;
+  },
+
+  getCollections: async (limit?: number): Promise<{ success: boolean; data: any[] }> => {
+    const response = await api.get(`/products/content/collections${limit ? `?limit=${limit}` : ''}`);
+    return response.data;
+  },
+
+  getCollectionBySlug: async (slug: string, limit?: number): Promise<{ success: boolean; data: any }> => {
+    const response = await api.get(`/products/content/collections/${slug}${limit ? `?limit=${limit}` : ''}`);
+    return response.data;
+  },
+
   /**
    * Get current user's listings
    */
@@ -141,6 +203,11 @@ const productService = {
     if (data.deliveryOption) formData.append('deliveryOption', data.deliveryOption);
     if (data.pickupLocation) formData.append('pickupLocation', data.pickupLocation);
     if (data.status) formData.append('status', data.status);
+    if (data.stock !== undefined) formData.append('stock', String(data.stock));
+    if (data.availableFrom) formData.append('availableFrom', data.availableFrom);
+    if (data.availableUntil) formData.append('availableUntil', data.availableUntil);
+    if (data.flashSalePrice !== undefined) formData.append('flashSalePrice', String(data.flashSalePrice));
+    if (data.flashSaleEndsAt) formData.append('flashSaleEndsAt', data.flashSaleEndsAt);
     if (data.tags && data.tags.length > 0) {
       formData.append('tags', data.tags.join(','));
     }
@@ -172,6 +239,11 @@ const productService = {
     if (data.status) formData.append('status', data.status);
     if (data.deliveryOption) formData.append('deliveryOption', data.deliveryOption);
     if (data.pickupLocation !== undefined) formData.append('pickupLocation', data.pickupLocation);
+    if (data.stock !== undefined) formData.append('stock', String(data.stock));
+    if (data.availableFrom !== undefined) formData.append('availableFrom', data.availableFrom);
+    if (data.availableUntil !== undefined) formData.append('availableUntil', data.availableUntil);
+    if (data.flashSalePrice !== undefined) formData.append('flashSalePrice', String(data.flashSalePrice));
+    if (data.flashSaleEndsAt !== undefined) formData.append('flashSaleEndsAt', data.flashSaleEndsAt);
     if (data.tags && data.tags.length > 0) {
       formData.append('tags', data.tags.join(','));
     }
@@ -233,12 +305,25 @@ const productService = {
   /**
    * Import products from CSV
    */
-  importCSV: async (file: File): Promise<{ success: boolean; message: string; data: { successCount: number; errors: any[] } }> => {
+  importCSV: async (file: File, options?: { withImages?: boolean }): Promise<{ success: boolean; message: string; data: { successCount: number; errors: any[]; importMode?: string; withImages?: boolean; imagesImported?: number } }> => {
     const formData = new FormData();
     formData.append('csvFile', file);
-    const response = await api.post('/products/bulk/csv', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
+    if (options?.withImages) {
+      formData.append('withImages', 'true');
+    }
+    const response = await api.post('/products/bulk/csv', formData);
+    return response.data;
+  },
+
+  previewCSV: async (file: File): Promise<{ success: boolean; message: string; data: { importMode: 'shopify' | 'generic'; headers: string[]; totalRows: number; estimatedValid: number; estimatedInvalid: number } }> => {
+    const formData = new FormData();
+    formData.append('csvFile', file);
+    const response = await api.post('/products/bulk/csv/preview', formData);
+    return response.data;
+  },
+
+  bulkUpdateStatus: async (productIds: string[], status: 'active' | 'draft' | 'sold'): Promise<{ success: boolean; message: string; data: { modifiedCount: number; matchedCount: number } }> => {
+    const response = await api.patch('/products/bulk/status', { productIds, status });
     return response.data;
   },
 };

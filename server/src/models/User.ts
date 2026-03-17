@@ -29,13 +29,19 @@ export interface IUserDocument extends Document {
     showOnlineStatus: boolean;
   };
   pushSubscriptions?: {
-    endpoint: string;
-    keys: {
+    kind?: 'web' | 'expo';
+    endpoint?: string;
+    keys?: {
       p256dh: string;
       auth: string;
     };
+    expoPushToken?: string;
+    platform?: string;
+    deviceId?: string;
   }[];
   responseTimeMinutes: number;
+  storeName?: string;
+  brandName?: string;
   createdAt: Date;
   updatedAt: Date;
   comparePassword(candidatePassword: string): Promise<boolean>;
@@ -60,7 +66,7 @@ const userSchema = new Schema<IUserDocument>(
     },
     phone: {
       type: String,
-      required: [true, 'Phone number is required'],
+      default: '',
       trim: true,
     },
     password: {
@@ -122,17 +128,37 @@ const userSchema = new Schema<IUserDocument>(
     },
     pushSubscriptions: [
       {
+        kind: {
+          type: String,
+          enum: ['web', 'expo'],
+          default: 'web',
+        },
         endpoint: String,
         keys: {
           p256dh: String,
           auth: String,
         },
+        expoPushToken: String,
+        platform: String,
+        deviceId: String,
       }
     ],
     responseTimeMinutes: {
       type: Number,
       default: 15,
       min: 1,
+    },
+    storeName: {
+      type: String,
+      default: '',
+      trim: true,
+      maxlength: [80, 'Store name cannot exceed 80 characters'],
+    },
+    brandName: {
+      type: String,
+      default: '',
+      trim: true,
+      maxlength: [80, 'Brand name cannot exceed 80 characters'],
     },
   },
   {

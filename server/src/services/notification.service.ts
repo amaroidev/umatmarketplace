@@ -3,6 +3,7 @@ import User from '../models/User';
 import ApiError from '../utils/ApiError';
 import webpush from 'web-push';
 import dotenv from 'dotenv';
+import axios from 'axios';
 import { emailService } from './email.service';
 
 dotenv.config();
@@ -16,6 +17,27 @@ if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
 }
 
 class NotificationService {
+  private async sendExpoPushNotification(token: string, payload: any): Promise<void> {
+    await axios.post(
+      'https://exp.host/--/api/v2/push/send',
+      {
+        to: token,
+        sound: 'default',
+        title: payload.title,
+        body: payload.body,
+        data: payload.data || { url: payload.url || '/' },
+      },
+      {
+        headers: {
+          Accept: 'application/json',
+          'Accept-encoding': 'gzip, deflate',
+          'Content-Type': 'application/json',
+        },
+        timeout: 10000,
+      }
+    );
+  }
+
   /**
    * Create a notification and optionally send push
    */
@@ -66,6 +88,29 @@ class NotificationService {
       // Check user preferences based on type mapping if we wanted to
       // For now, send to all their devices
       const notifications = user.pushSubscriptions.map(async (sub) => {
+        if (sub.kind === 'expo' || sub.expoPushToken) {
+          if (!sub.expoPushToken) return;
+          try {
+            await this.sendExpoPushNotification(sub.expoPushToken, payload);
+          } catch (error: any) {
+            const details = error?.response?.data;
+            const shouldRemoveToken =
+              details?.data?.details?.error === 'DeviceNotRegistered' ||
+              error?.response?.status === 400;
+
+            if (shouldRemoveToken) {
+              await User.findByIdAndUpdate(userId, {
+                $pull: { pushSubscriptions: { expoPushToken: sub.expoPushToken } },
+              });
+            } else {
+              console.error('Expo push notification error:', details || error.message);
+            }
+          }
+          return;
+        }
+
+        if (!sub.endpoint || !sub.keys) return;
+
         try {
           await webpush.sendNotification(
             sub as any,

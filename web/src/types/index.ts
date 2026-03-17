@@ -1,6 +1,8 @@
 export interface User {
   _id: string;
   name: string;
+  storeName?: string;
+  brandName?: string;
   email: string;
   phone: string;
   role: 'buyer' | 'seller' | 'admin';
@@ -41,13 +43,18 @@ export interface Product {
   description: string;
   price: number;
   category: Category | string;
-  seller: Pick<User, '_id' | 'name' | 'avatar' | 'isVerified' | 'location'> | string;
+  seller: Pick<User, '_id' | 'name' | 'storeName' | 'brandName' | 'avatar' | 'isVerified' | 'location'> | string;
   images: ProductImage[];
   condition: ProductCondition;
   status: ProductStatus;
   deliveryOption: DeliveryOption;
   pickupLocation: string;
   tags: string[];
+  stock: number;
+  availableFrom?: string;
+  availableUntil?: string;
+  flashSalePrice?: number;
+  flashSaleEndsAt?: string;
   views: number;
   isFeatured: boolean;
   isFlagged: boolean;
@@ -59,7 +66,7 @@ export interface Product {
 // Product with populated references
 export interface ProductPopulated extends Omit<Product, 'category' | 'seller'> {
   category: Category;
-  seller: Pick<User, '_id' | 'name' | 'avatar' | 'isVerified' | 'location'>;
+  seller: Pick<User, '_id' | 'name' | 'storeName' | 'brandName' | 'avatar' | 'isVerified' | 'location'>;
 }
 
 export interface ProductFilters {
@@ -165,6 +172,8 @@ export interface OrderPopulated extends Omit<Order, 'buyer' | 'seller'> {
   seller: {
     _id: string;
     name: string;
+    storeName?: string;
+    brandName?: string;
     avatar?: string;
     phone: string;
     isVerified: boolean;

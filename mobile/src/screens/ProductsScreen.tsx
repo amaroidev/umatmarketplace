@@ -10,8 +10,11 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import productService from '../services/product.service';
 import { Product } from '../types';
+
+const PRODUCTS_CACHE_KEY = 'products_cache_v1';
 
 const ProductsScreen = ({ navigation }: any) => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -24,7 +27,15 @@ const ProductsScreen = ({ navigation }: any) => {
     if (withLoader) setLoading(true);
     try {
       const res = await productService.getProducts({ limit: 30, search: search || undefined, sort });
-      if (res.success) setProducts(res.data);
+      if (res.success) {
+        setProducts(res.data);
+        await AsyncStorage.setItem(PRODUCTS_CACHE_KEY, JSON.stringify(res.data));
+      }
+    } catch {
+      const cached = await AsyncStorage.getItem(PRODUCTS_CACHE_KEY);
+      if (cached) {
+        setProducts(JSON.parse(cached));
+      }
     } finally {
       setLoading(false);
       setRefreshing(false);

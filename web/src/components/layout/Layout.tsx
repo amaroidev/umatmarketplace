@@ -10,7 +10,7 @@ const Layout: React.FC = () => {
   return (
     <div className="flex flex-col min-h-screen">
       <Header />
-      <main className="flex-1">
+      <main className="flex-1 animate-fade-up-in">
         <Outlet />
       </main>
       {!isAuthPage && <Footer />}

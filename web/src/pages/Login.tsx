@@ -48,10 +48,27 @@ const LoginPage: React.FC = () => {
     if (credentialResponse.credential) {
       setIsSubmitting(true);
       try {
-        await googleLogin(credentialResponse.credential);
-        navigate(from, { replace: true });
+        const result = await googleLogin(credentialResponse.credential, undefined);
+        if (result.isNewUser) {
+          toast.error('No account found. Please sign up with Google and choose a role.');
+          setTimeout(() => navigate('/register'), 700);
+          setIsSubmitting(false);
+          return;
+        }
+        if (result.needsProfileCompletion) {
+          toast('Profile incomplete. Continue, then update phone/store details in Profile.');
+          navigate(from, { replace: true });
+        } else {
+          navigate(from, { replace: true });
+        }
       } catch (err: any) {
-        toast.error(err.response?.data?.message || 'Google login failed');
+        const message = err?.response?.data?.message || '';
+        if (message.toLowerCase().includes('sign up first')) {
+          toast.error('No account found. Please sign up with Google and choose a role.');
+          setTimeout(() => navigate('/register'), 700);
+        } else {
+          toast.error(message || 'Google sign-in failed. Please try again.');
+        }
       } finally {
         setIsSubmitting(false);
       }
@@ -185,8 +202,8 @@ const LoginPage: React.FC = () => {
           <div className="mt-6 flex justify-center">
             <GoogleLogin
               onSuccess={handleGoogleSuccess}
-              onError={() => toast.error('Google Login failed')}
-              useOneTap
+              onError={() => toast.error('Google sign-in could not start. Check browser/origin settings and try again.')}
+              useOneTap={false}
               shape="rectangular"
               theme="outline"
               size="large"

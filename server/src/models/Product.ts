@@ -18,6 +18,11 @@ export interface IProductDocument extends Document {
   deliveryOption: 'pickup' | 'delivery' | 'both';
   pickupLocation: string;
   tags: string[];
+  stock: number;
+  availableFrom?: Date;
+  availableUntil?: Date;
+  flashSalePrice?: number;
+  flashSaleEndsAt?: Date;
   views: number;
   isFeatured: boolean;
   isFlagged: boolean;
@@ -105,6 +110,25 @@ const productSchema = new Schema<IProductDocument>(
         },
         message: 'Maximum 10 tags allowed',
       },
+    },
+    stock: {
+      type: Number,
+      default: 1,
+      min: [0, 'Stock cannot be negative'],
+      max: [10000, 'Stock is too high'],
+    },
+    availableFrom: {
+      type: Date,
+    },
+    availableUntil: {
+      type: Date,
+    },
+    flashSalePrice: {
+      type: Number,
+      min: [0.5, 'Flash sale price must be at least GHS 0.50'],
+    },
+    flashSaleEndsAt: {
+      type: Date,
     },
     views: {
       type: Number,

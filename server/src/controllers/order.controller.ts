@@ -18,6 +18,7 @@ export const createOrder = async (
         productId: req.body.productId,
         quantity: req.body.quantity,
         deliveryMethod: req.body.deliveryMethod,
+        couponCode: req.body.couponCode,
         pickupLocation: req.body.pickupLocation,
         deliveryAddress: req.body.deliveryAddress,
         note: req.body.note,
@@ -192,6 +193,86 @@ export const getSellerStats = async (
       success: true,
       data: { stats },
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getAbandonedCheckouts = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const data = await orderService.getAbandonedCheckouts(
+      req.query.limit ? parseInt(req.query.limit as string, 10) : 20
+    );
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const createCoupon = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const coupon = await orderService.createCoupon(req.user!._id.toString(), req.body);
+    res.status(201).json({ success: true, message: 'Coupon created', data: { coupon } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getSellerCoupons = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const coupons = await orderService.getSellerCoupons(req.user!._id.toString());
+    res.status(200).json({ success: true, data: { coupons } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const createBundle = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const bundle = await orderService.createBundle(req.user!._id.toString(), req.body);
+    res.status(201).json({ success: true, message: 'Bundle created', data: { bundle } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getSellerBundles = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const bundles = await orderService.getSellerBundles(req.user!._id.toString());
+    res.status(200).json({ success: true, data: { bundles } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const runAutomationSweep = async (
+  _req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const result = await orderService.runAutomationSweep();
+    res.status(200).json({ success: true, message: 'Automation sweep completed', data: result });
   } catch (error) {
     next(error);
   }

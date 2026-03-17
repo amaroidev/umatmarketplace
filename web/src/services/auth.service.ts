@@ -17,6 +17,8 @@ export interface LoginData {
 
 export interface UpdateProfileData {
   name?: string;
+  storeName?: string;
+  brandName?: string;
   phone?: string;
   avatar?: string;
   studentId?: string;
@@ -52,6 +54,13 @@ const authService = {
 
   updateProfile: async (data: UpdateProfileData) => {
     const response = await api.put('/auth/profile', data);
+    return response.data;
+  },
+
+  uploadAvatar: async (file: File) => {
+    const formData = new FormData();
+    formData.append('avatar', file);
+    const response = await api.post('/auth/profile/avatar', formData);
     return response.data;
   },
 

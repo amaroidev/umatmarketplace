@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -33,23 +33,61 @@ const queryClient = new QueryClient({
   },
 });
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || ''}>
+const AppRoot: React.FC = () => {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 768px)');
+    const update = () => setIsMobile(mq.matches);
+    update();
+    mq.addEventListener('change', update);
+    return () => mq.removeEventListener('change', update);
+  }, []);
+
+  return (
+    <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || '904520092449-gnrmhr6h0ltvf74uqdh0s3pcflalljji.apps.googleusercontent.com'}>
       <BrowserRouter>
         <QueryClientProvider client={queryClient}>
           <AuthProvider>
             <SocketProvider>
               <App />
               <Toaster
-                position="top-right"
+                position={isMobile ? 'bottom-center' : 'bottom-right'}
                 toastOptions={{
-                  duration: 4000,
+                  duration: 1800,
                   style: {
-                    borderRadius: '12px',
-                    background: '#333',
-                    color: '#fff',
-                    fontSize: '14px',
+                    borderRadius: '0px',
+                    background: '#f6f1e7',
+                    color: '#2c2418',
+                    fontSize: '12px',
+                    fontWeight: '700',
+                    letterSpacing: '0.08em',
+                    textTransform: 'uppercase',
+                    border: '1px solid #dccfb8',
+                    boxShadow: 'none',
+                    padding: '10px 12px',
+                  },
+                  success: {
+                    style: {
+                      borderColor: '#93a77a',
+                      background: '#edf3e6',
+                      color: '#2d3b1f',
+                    },
+                    iconTheme: {
+                      primary: '#5f7a3f',
+                      secondary: '#edf3e6',
+                    },
+                  },
+                  error: {
+                    style: {
+                      borderColor: '#e2a8a2',
+                      background: '#fceceb',
+                      color: '#6b221c',
+                    },
+                    iconTheme: {
+                      primary: '#c0392b',
+                      secondary: '#fceceb',
+                    },
                   },
                 }}
               />
@@ -58,5 +96,11 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         </QueryClientProvider>
       </BrowserRouter>
     </GoogleOAuthProvider>
+  );
+};
+
+ReactDOM.createRoot(document.getElementById('root')!).render(
+  <React.StrictMode>
+    <AppRoot />
   </React.StrictMode>
 );

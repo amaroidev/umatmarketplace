@@ -425,7 +425,7 @@ const OrderDetail: React.FC = () => {
           {isBuyer ? (
             <div className="space-y-2 text-sm">
               <p className="font-semibold text-earth-900">
-                {order.seller.name}
+                {(order.seller as any).storeName || (order.seller as any).brandName || order.seller.name}
                 {order.seller.isVerified && (
                   <span className="text-moss-500 text-xs ml-2">Verified</span>
                 )}

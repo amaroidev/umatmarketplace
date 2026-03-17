@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import multer from 'multer';
 import ApiError from '../utils/ApiError';
 import env from '../config/env';
 
@@ -23,6 +24,22 @@ export const errorHandler = (
 
   // Mongoose validation error
   if (err.name === 'ValidationError') {
+    statusCode = 400;
+    message = err.message;
+    isOperational = true;
+  }
+
+  if (err instanceof multer.MulterError) {
+    statusCode = 400;
+    isOperational = true;
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      message = 'CSV file is too large. Maximum size is 2MB.';
+    } else {
+      message = err.message;
+    }
+  }
+
+  if (err.message.includes('Invalid file type. Only CSV files are allowed.')) {
     statusCode = 400;
     message = err.message;
     isOperational = true;

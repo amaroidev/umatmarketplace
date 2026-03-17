@@ -41,7 +41,7 @@ export const uploadToCloudinary = (
       },
       (error, result) => {
         if (error) {
-          reject(ApiError.internal('Failed to upload image to cloud storage'));
+          reject(ApiError.internal(`Failed to upload image to cloud storage: ${error.message || 'unknown error'}`));
         } else if (result) {
           resolve({
             url: result.secure_url,

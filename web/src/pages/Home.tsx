@@ -152,7 +152,7 @@ const CURATED_PRODUCTS = [
     price: 420,
     category: 'Books & Study',
     condition: 'new',
-    image: '/curated/lecture-kit.svg',
+    image: '/curated/optimized/lecture-kit-card.webp',
   },
   {
     id: 'curated-hostel-reset',
@@ -160,7 +160,7 @@ const CURATED_PRODUCTS = [
     price: 650,
     category: 'Home & Hostel',
     condition: 'like_new',
-    image: '/curated/hostel-reset.svg',
+    image: '/curated/optimized/hostel-reset-card.webp',
   },
   {
     id: 'curated-weekend-fit',
@@ -168,7 +168,7 @@ const CURATED_PRODUCTS = [
     price: 280,
     category: 'Fashion',
     condition: 'new',
-    image: '/curated/weekend-fit.svg',
+    image: '/curated/optimized/weekend-fit-card.webp',
   },
   {
     id: 'curated-gadget-set',
@@ -176,7 +176,7 @@ const CURATED_PRODUCTS = [
     price: 980,
     category: 'Electronics',
     condition: 'used',
-    image: '/curated/gadget-setup.svg',
+    image: '/curated/optimized/gadget-setup-card.webp',
   },
   {
     id: 'curated-sneaker-drop',
@@ -184,7 +184,7 @@ const CURATED_PRODUCTS = [
     price: 350,
     category: 'Fashion',
     condition: 'new',
-    image: '/curated/sneaker-drop.svg',
+    image: '/curated/optimized/sneaker-drop-card.webp',
   },
   {
     id: 'curated-study-corner',
@@ -192,7 +192,7 @@ const CURATED_PRODUCTS = [
     price: 540,
     category: 'Home & Hostel',
     condition: 'like_new',
-    image: '/curated/study-corner.svg',
+    image: '/curated/optimized/study-corner-card.webp',
   },
   {
     id: 'curated-audio-pack',
@@ -200,7 +200,7 @@ const CURATED_PRODUCTS = [
     price: 210,
     category: 'Electronics',
     condition: 'new',
-    image: '/curated/audio-pack.svg',
+    image: '/curated/optimized/audio-pack-card.webp',
   },
   {
     id: 'curated-canvas-bag',
@@ -208,7 +208,7 @@ const CURATED_PRODUCTS = [
     price: 120,
     category: 'Fashion',
     condition: 'new',
-    image: '/curated/canvas-carry.svg',
+    image: '/curated/optimized/canvas-carry-card.webp',
   },
 ];
 
@@ -219,6 +219,10 @@ const HomePage: React.FC = () => {
   const [featuredProducts, setFeaturedProducts] = useState<ProductPopulated[]>([]);
   const [recentProducts, setRecentProducts] = useState<ProductPopulated[]>([]);
   const [trendingProducts, setTrendingProducts] = useState<ProductPopulated[]>([]);
+  const [topSellers, setTopSellers] = useState<any[]>([]);
+  const [soldFeed, setSoldFeed] = useState<any[]>([]);
+  const [categorySpotlights, setCategorySpotlights] = useState<any[]>([]);
+  const [collections, setCollections] = useState<any[]>([]);
   const [recentlyViewedProducts, setRecentlyViewedProducts] = useState<ProductPopulated[]>([]);
   const [loadingFeatured, setLoadingFeatured] = useState(true);
   const [loadingRecent, setLoadingRecent] = useState(true);
@@ -241,6 +245,22 @@ const HomePage: React.FC = () => {
     productService.getTrending(8).then((res) => {
       if (res.success) setTrendingProducts(res.data);
     }).catch(() => {}).finally(() => setLoadingTrending(false));
+
+    productService.getTopSellers(5).then((res) => {
+      if (res.success) setTopSellers(res.data);
+    }).catch(() => {});
+
+    productService.getSoldFeed(6).then((res) => {
+      if (res.success) setSoldFeed(res.data);
+    }).catch(() => {});
+
+    productService.getCategorySpotlights(6).then((res) => {
+      if (res.success) setCategorySpotlights(res.data);
+    }).catch(() => {});
+
+    productService.getCollections(3).then((res) => {
+      if (res.success) setCollections(res.data);
+    }).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -405,7 +425,7 @@ const HomePage: React.FC = () => {
         </div>
       </section>
 
-      <section className="border-b border-earth-200 bg-earth-50">
+      <section className="animate-fade-up-in border-b border-earth-200 bg-earth-50">
         <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
           <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
@@ -413,7 +433,7 @@ const HomePage: React.FC = () => {
               <h2 className="mt-2 text-3xl font-black uppercase tracking-tight text-earth-900">Curated rows, not just categories.</h2>
             </div>
             <p className="max-w-md text-sm leading-7 text-earth-500">
-              More like a storefront front page: grouped by moment, use case, and how students actually shop during the week.
+              Grouped by moment and use case to make discovery faster.
             </p>
           </div>
 
@@ -458,7 +478,7 @@ const HomePage: React.FC = () => {
       {/* ════════════════════════════════════════════════
           CAMPUS EDIT
       ════════════════════════════════════════════════ */}
-      <section className="border-b border-earth-200 bg-white">
+      <section className="animate-fade-up-in border-b border-earth-200 bg-white">
         <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
           <div className="mb-8 flex flex-col gap-4 lg:mb-10 lg:flex-row lg:items-end lg:justify-between">
             <div>
@@ -468,7 +488,7 @@ const HomePage: React.FC = () => {
               </h2>
             </div>
             <p className="max-w-md text-sm leading-7 text-earth-500">
-              A more editorial first look - featured drops, trending items, and the freshest listings arranged like a proper storefront.
+              Featured drops, trending items, and fresh listings in one view.
             </p>
           </div>
 
@@ -781,7 +801,7 @@ const HomePage: React.FC = () => {
         </div>
       </section>
 
-      <section className="border-b border-earth-200 bg-white">
+      <section className="animate-fade-up-in border-b border-earth-200 bg-white">
         <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
           <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
@@ -828,7 +848,7 @@ const HomePage: React.FC = () => {
         </div>
       </section>
 
-      <section className="border-b border-earth-200 bg-[#0a0a0a]">
+      <section className="animate-fade-up-in border-b border-earth-200 bg-[#0a0a0a]">
         <div className="mx-auto grid max-w-7xl gap-px bg-white/[0.08] lg:grid-cols-[1.1fr_0.9fr]">
           <div className="bg-[#0a0a0a] px-8 py-14 lg:px-12 lg:py-16">
             <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-white/25">Trust & protection</p>
@@ -890,6 +910,121 @@ const HomePage: React.FC = () => {
           </div>
         </div>
       </section>
+
+      {(soldFeed.length > 0 || topSellers.length > 0) && (
+        <section className="border-b border-earth-200 bg-earth-50">
+          <div className="mx-auto grid max-w-7xl gap-6 px-4 py-12 sm:px-6 lg:grid-cols-2 lg:px-8 lg:py-16">
+            <div className="border border-earth-200 bg-white">
+              <div className="border-b border-earth-100 px-5 py-4">
+                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-earth-400">Live sold feed</p>
+                <h3 className="mt-1 text-lg font-black uppercase tracking-tight text-earth-900">Recent campus purchases</h3>
+              </div>
+              <div className="divide-y divide-earth-100">
+                {soldFeed.slice(0, 5).map((item: any) => (
+                  <div key={item.orderId} className="px-5 py-3.5">
+                    <p className="text-sm font-semibold text-earth-900">{item.itemTitle}</p>
+                    <p className="mt-1 text-[11px] text-earth-500">
+                      Sold by {item.seller?.name || 'Seller'} • GHS {Number(item.itemPrice).toLocaleString('en-GH')}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="border border-earth-200 bg-white">
+              <div className="border-b border-earth-100 px-5 py-4">
+                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-earth-400">Top sellers</p>
+                <h3 className="mt-1 text-lg font-black uppercase tracking-tight text-earth-900">Leaderboard</h3>
+              </div>
+              <div className="divide-y divide-earth-100">
+                {topSellers.slice(0, 5).map((entry: any, idx: number) => (
+                  <div key={`${entry?.seller?._id || idx}`} className="flex items-center justify-between px-5 py-3.5">
+                    <div>
+                      <p className="text-sm font-semibold text-earth-900">#{idx + 1} {entry?.seller?.name || 'Seller'}</p>
+                      <p className="mt-1 text-[11px] text-earth-500">{entry.totalSales} completed sales</p>
+                    </div>
+                    <p className="text-sm font-black text-earth-900">GHS {Number(entry.totalRevenue || 0).toLocaleString('en-GH')}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {categorySpotlights.length > 0 && (
+        <section className="border-b border-earth-200 bg-white">
+          <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
+            <div className="mb-8 flex items-end justify-between">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-earth-400">Category spotlights</p>
+                <h3 className="mt-2 text-2xl font-black uppercase tracking-tight text-earth-900">Auto-generated trend lanes</h3>
+              </div>
+              <Link to="/categories" className="text-[10px] font-bold uppercase tracking-[0.16em] text-earth-500 hover:text-earth-900">All categories</Link>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {categorySpotlights.map((item: any) => (
+                <Link
+                  key={item.category._id}
+                  to={`/products?category=${item.category.slug}`}
+                  className="border border-earth-200 bg-earth-50 p-5 hover:border-earth-900 transition-colors"
+                >
+                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-earth-400">Spotlight</p>
+                  <p className="mt-2 text-lg font-black uppercase tracking-tight text-earth-900">{item.category.name}</p>
+                  <p className="mt-3 text-xs text-earth-500">{item.listingCount} active listings • Avg GHS {Number(item.avgPrice || 0).toLocaleString('en-GH')}</p>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {collections.length > 0 && (
+        <section className="border-b border-earth-200 bg-earth-50">
+          <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
+            <div className="mb-8 flex items-end justify-between">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-earth-400">Campaign collections</p>
+                <h3 className="mt-2 text-2xl font-black uppercase tracking-tight text-earth-900">Seasonal storefront lanes</h3>
+              </div>
+            </div>
+            <div className="grid gap-4 lg:grid-cols-3">
+              {collections.map((item: any) => (
+                <Link
+                  key={item.slug}
+                  to={`/collections/${item.slug}`}
+                  className="group border border-earth-200 bg-white"
+                >
+                  <div className="aspect-[4/3] overflow-hidden bg-earth-100">
+                    {item.hero?.image ? (
+                      <img
+                        src={item.hero.image}
+                        alt={item.title}
+                        className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+                      />
+                    ) : (
+                      <div className="flex h-full items-center justify-center text-earth-300">
+                        <Layers3 className="h-8 w-8" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-5">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-earth-400">Collection</p>
+                    <h4 className="mt-2 text-xl font-black uppercase tracking-tight text-earth-900">{item.title}</h4>
+                    <p className="mt-2 line-clamp-2 text-sm leading-6 text-earth-500">{item.description}</p>
+                    <div className="mt-4 flex items-center justify-between text-xs">
+                      <span className="font-semibold text-earth-600">{item.listingCount} listings</span>
+                      <span className="inline-flex items-center gap-1 font-bold uppercase tracking-[0.14em] text-earth-500 group-hover:text-earth-900">
+                        Open <ArrowRight className="h-3.5 w-3.5" />
+                      </span>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* ════════════════════════════════════════════════
           TRENDING

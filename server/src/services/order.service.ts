@@ -1,12 +1,16 @@
 import mongoose from 'mongoose';
 import Order, { IOrderDocument } from '../models/Order';
 import Product from '../models/Product';
+import Coupon from '../models/Coupon';
+import Bundle from '../models/Bundle';
 import ApiError from '../utils/ApiError';
+import notificationService from './notification.service';
 
 interface CreateOrderInput {
   productId: string;
   quantity?: number;
   deliveryMethod: 'pickup' | 'delivery';
+  couponCode?: string;
   pickupLocation?: string;
   deliveryAddress?: string;
   note?: string;
@@ -27,7 +31,7 @@ class OrderService {
    * Create a new order
    */
   async createOrder(buyerId: string, input: CreateOrderInput): Promise<IOrderDocument> {
-    const { productId, quantity = 1, deliveryMethod, pickupLocation, deliveryAddress, note } = input;
+    const { productId, quantity = 1, deliveryMethod, couponCode, pickupLocation, deliveryAddress, note } = input;
 
     // Fetch product
     const product = await Product.findById(productId).populate('seller', '_id');
@@ -61,10 +65,45 @@ class OrderService {
       throw ApiError.badRequest('This product is delivery only');
     }
 
+    if (product.availableFrom && new Date(product.availableFrom) > new Date()) {
+      throw ApiError.badRequest('This listing is scheduled and not yet available');
+    }
+
+    if (product.availableUntil && new Date(product.availableUntil) < new Date()) {
+      throw ApiError.badRequest('This listing campaign has ended');
+    }
+
     // Calculate totals
-    const itemTotal = product.price * quantity;
+    const effectivePrice = product.flashSalePrice && product.flashSaleEndsAt && new Date(product.flashSaleEndsAt) > new Date()
+      ? product.flashSalePrice
+      : product.price;
+    const itemTotal = effectivePrice * quantity;
     const deliveryFee = deliveryMethod === 'delivery' ? 5.00 : 0; // Flat GHS 5 delivery fee
-    const totalAmount = itemTotal + deliveryFee;
+    let discountAmount = 0;
+
+    if (couponCode) {
+      const now = new Date();
+      const coupon = await Coupon.findOne({
+        code: couponCode.toUpperCase(),
+        seller: sellerId,
+        isActive: true,
+        $and: [
+          { $or: [{ startsAt: { $exists: false } }, { startsAt: null }, { startsAt: { $lte: now } }] },
+          { $or: [{ expiresAt: { $exists: false } }, { expiresAt: null }, { expiresAt: { $gte: now } }] },
+        ],
+      });
+
+      if (coupon && itemTotal >= coupon.minOrderAmount && coupon.usedCount < coupon.usageLimit) {
+        discountAmount = coupon.type === 'percentage'
+          ? (itemTotal * coupon.value) / 100
+          : coupon.value;
+        discountAmount = Math.min(discountAmount, itemTotal);
+        coupon.usedCount += 1;
+        await coupon.save();
+      }
+    }
+
+    const totalAmount = Math.max(0, itemTotal + deliveryFee - discountAmount);
 
     // Create the order
     const order = await Order.create({
@@ -74,12 +113,14 @@ class OrderService {
         {
           product: product._id,
           title: product.title,
-          price: product.price,
+          price: effectivePrice,
           image: product.images?.[0]?.url || undefined,
           quantity,
         },
       ],
       totalAmount,
+      discountAmount,
+      couponCode: couponCode ? couponCode.toUpperCase() : undefined,
       deliveryMethod,
       pickupLocation: deliveryMethod === 'pickup' ? pickupLocation : undefined,
       deliveryAddress: deliveryMethod === 'delivery' ? deliveryAddress : undefined,
@@ -91,6 +132,21 @@ class OrderService {
     // Mark product as reserved
     product.status = 'reserved';
     await product.save();
+
+    if (product.stock > 0) {
+      product.stock = Math.max(0, product.stock - quantity);
+      await product.save();
+      if (product.stock <= 2) {
+        await notificationService.create(
+          sellerId,
+          'system',
+          'Inventory Low',
+          `${product.title} is low on stock (${product.stock} left).`,
+          '/my-listings',
+          { productId: product._id.toString(), stock: product.stock }
+        );
+      }
+    }
 
     // Populate and return
     return order.populate([
@@ -106,7 +162,7 @@ class OrderService {
   async getOrderById(orderId: string, userId: string, isAdmin: boolean = false): Promise<IOrderDocument> {
     const order = await Order.findById(orderId)
       .populate('buyer', 'name avatar phone email')
-      .populate('seller', 'name avatar phone isVerified')
+      .populate('seller', 'name storeName brandName avatar phone isVerified')
       .populate('items.product', 'title price images status seller')
       .populate('payment');
 
@@ -146,7 +202,7 @@ class OrderService {
       .skip(skip)
       .limit(limit)
       .populate('buyer', 'name avatar phone email')
-      .populate('seller', 'name avatar phone isVerified')
+      .populate('seller', 'name storeName brandName avatar phone isVerified')
       .populate('items.product', 'title price images status seller')
       .populate('payment');
 
@@ -181,7 +237,7 @@ class OrderService {
       .skip(skip)
       .limit(limit)
       .populate('buyer', 'name avatar phone email')
-      .populate('seller', 'name avatar phone isVerified')
+      .populate('seller', 'name storeName brandName avatar phone isVerified')
       .populate('items.product', 'title price images status seller')
       .populate('payment');
 
@@ -326,6 +382,117 @@ class OrderService {
     });
 
     return result;
+  }
+
+  async getAbandonedCheckouts(limit: number = 20): Promise<IOrderDocument[]> {
+    const threshold = new Date(Date.now() - 60 * 60 * 1000);
+    return Order.find({
+      status: 'pending',
+      createdAt: { $lte: threshold },
+    })
+      .sort({ createdAt: 1 })
+      .limit(limit)
+      .populate('buyer', 'name email')
+      .populate('seller', 'name')
+      .populate('items.product', 'title');
+  }
+
+  async runAutomationSweep(): Promise<{
+    abandonedCheckoutCount: number;
+    inventoryLowAlertCount: number;
+  }> {
+    const abandoned = await this.getAbandonedCheckouts(50);
+
+    for (const order of abandoned) {
+      const buyer = order.buyer as any;
+      if (buyer?._id) {
+        await notificationService.create(
+          buyer._id.toString(),
+          'system',
+          'Checkout Reminder',
+          `You still have a pending checkout (#${order.orderNumber}). Complete payment before it expires.`,
+          `/orders/${order._id}`,
+          { orderId: order._id.toString(), automation: 'abandoned_checkout' }
+        );
+      }
+    }
+
+    const lowStockProducts = await Product.find({
+      status: { $in: ['active', 'reserved'] },
+      stock: { $lte: 2 },
+    }).select('title stock seller');
+
+    for (const item of lowStockProducts) {
+      await notificationService.create(
+        item.seller.toString(),
+        'system',
+        'Inventory Low',
+        `${item.title} is running low (${item.stock} left). Restock or update listing status.`,
+        '/my-listings',
+        { productId: item._id.toString(), stock: item.stock, automation: 'inventory_low' }
+      );
+    }
+
+    return {
+      abandonedCheckoutCount: abandoned.length,
+      inventoryLowAlertCount: lowStockProducts.length,
+    };
+  }
+
+  async createCoupon(
+    sellerId: string,
+    input: {
+      code: string;
+      type: 'percentage' | 'fixed';
+      value: number;
+      minOrderAmount?: number;
+      usageLimit?: number;
+      startsAt?: string;
+      expiresAt?: string;
+    }
+  ) {
+    return Coupon.create({
+      seller: sellerId,
+      code: input.code.toUpperCase(),
+      type: input.type,
+      value: input.value,
+      minOrderAmount: input.minOrderAmount || 0,
+      usageLimit: input.usageLimit || 100,
+      startsAt: input.startsAt ? new Date(input.startsAt) : undefined,
+      expiresAt: input.expiresAt ? new Date(input.expiresAt) : undefined,
+      isActive: true,
+    });
+  }
+
+  async getSellerCoupons(sellerId: string) {
+    return Coupon.find({ seller: sellerId }).sort({ createdAt: -1 });
+  }
+
+  async createBundle(
+    sellerId: string,
+    input: {
+      name: string;
+      productIds: string[];
+      discountPercent: number;
+    }
+  ) {
+    const products = await Product.find({ _id: { $in: input.productIds }, seller: sellerId }).select('_id');
+    if (products.length < 2) {
+      throw ApiError.badRequest('Bundle requires at least 2 of your own products');
+    }
+    return Bundle.create({
+      seller: sellerId,
+      name: input.name,
+      productIds: products.map((p) => p._id),
+      discountPercent: input.discountPercent,
+      isActive: true,
+    });
+  }
+
+  async getSellerBundles(sellerId: string) {
+    return Bundle.find({ seller: sellerId })
+      .sort({ createdAt: -1 })
+      .populate('productIds', 'title price images status');
   }
 }
 

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
+  Settings,
   Bell,
   ChevronDown,
   ClipboardList,
@@ -225,6 +226,10 @@ const Header: React.FC = () => {
                           ] : []),
                           { to: '/orders', icon: <Package className="h-3.5 w-3.5" />, label: 'My orders' },
                           { to: '/notifications', icon: <Bell className="h-3.5 w-3.5" />, label: 'Notifications' },
+                          { to: '/settings', icon: <Settings className="h-3.5 w-3.5" />, label: 'Settings' },
+                          ...(user?.role === 'admin' ? [
+                            { to: '/admin', icon: <Grid className="h-3.5 w-3.5" />, label: 'Admin' },
+                          ] : []),
                         ].map(({ to, icon, label }) => (
                           <Link
                             key={to}
@@ -293,6 +298,8 @@ const Header: React.FC = () => {
                 { to: '/messages', label: 'Messages' },
                 { to: '/saved', label: 'Saved items' },
                 { to: '/notifications', label: 'Notifications' },
+                { to: '/settings', label: 'Settings' },
+                ...(user?.role === 'admin' ? [{ to: '/admin', label: 'Admin dashboard' }] : []),
                 { to: '/orders', label: 'My orders' },
               ] : []),
             ].map(({ to, label }) => (

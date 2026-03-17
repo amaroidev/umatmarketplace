@@ -66,6 +66,15 @@ const ProductDetail: React.FC = () => {
   const [contacting, setContacting] = useState(false);
   const [reviews, setReviews] = useState<ReviewPopulated[]>([]);
   const [sellerRating, setSellerRating] = useState<SellerRating | null>(null);
+  const [recommendations, setRecommendations] = useState<ProductPopulated[]>([]);
+  const [priceInsights, setPriceInsights] = useState<{
+    min: number;
+    max: number;
+    average: number;
+    median: number;
+    sampleSize: number;
+    dealLabel: 'great_deal' | 'fair_price' | 'premium';
+  } | null>(null);
   const [isSaved, setIsSaved] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -115,6 +124,14 @@ const ProductDetail: React.FC = () => {
     productService.getRelated(id, 6).then((res) => {
       if (res.success) setRelatedProducts(res.data);
     });
+
+    productService.getRecommendations({ productId: id, limit: 6 }).then((res) => {
+      if (res.success) setRecommendations(res.data);
+    }).catch(() => {});
+
+    productService.getPriceInsights(id).then((res) => {
+      if (res.success) setPriceInsights(res.data);
+    }).catch(() => {});
   }, [id]);
 
   useEffect(() => {
@@ -354,6 +371,30 @@ const ProductDetail: React.FC = () => {
             GHS {product.price.toLocaleString('en-GH', { minimumFractionDigits: 2 })}
           </div>
 
+          {priceInsights && (
+            <div className="mb-5 border border-earth-200 bg-earth-50 p-4">
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-earth-400">Price intelligence</p>
+              <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                <div>
+                  <p className="text-[10px] uppercase tracking-[0.16em] text-earth-400">Market range</p>
+                  <p className="text-sm font-semibold text-earth-900">
+                    GHS {priceInsights.min.toLocaleString('en-GH')} - GHS {priceInsights.max.toLocaleString('en-GH')}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase tracking-[0.16em] text-earth-400">Average</p>
+                  <p className="text-sm font-semibold text-earth-900">GHS {priceInsights.average.toLocaleString('en-GH')}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase tracking-[0.16em] text-earth-400">Deal status</p>
+                  <p className="text-sm font-semibold text-earth-900">
+                    {priceInsights.dealLabel === 'great_deal' ? 'Great deal' : priceInsights.dealLabel === 'premium' ? 'Premium pricing' : 'Fair market price'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Badges */}
           <div className="flex flex-wrap gap-2 mb-4">
             <span className={`px-3 py-1 rounded-full text-sm font-medium ${conditionColors[product.condition]}`}>
@@ -485,7 +526,7 @@ const ProductDetail: React.FC = () => {
               </div>
               <div className="flex-1">
                 <div className="flex items-center gap-1.5">
-                  <span className="font-medium text-earth-900">{seller.name}</span>
+                  <span className="font-medium text-earth-900">{seller.storeName || seller.brandName || seller.name}</span>
                   {seller.isVerified && (
                     <svg className="h-4 w-4 text-moss-500" viewBox="0 0 20 20" fill="currentColor">
                       <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
@@ -589,6 +630,13 @@ const ProductDetail: React.FC = () => {
         <div className="mt-12">
           <h2 className="text-xl font-bold text-earth-900 mb-4">Similar Products</h2>
           <ProductGrid products={relatedProducts} />
+        </div>
+      )}
+
+      {recommendations.length > 0 && (
+        <div className="mt-12">
+          <h2 className="text-xl font-bold text-earth-900 mb-4">Because you viewed this</h2>
+          <ProductGrid products={recommendations} />
         </div>
       )}
 

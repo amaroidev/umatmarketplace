@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import * as SecureStore from 'expo-secure-store';
 import authService, { RegisterPayload } from '../services/auth.service';
 import { User } from '../types';
+import { syncPushSubscription, removePushSubscription } from '../services/push.service';
 
 interface AuthContextType {
   user: User | null;
@@ -51,6 +52,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await SecureStore.setItemAsync('user', JSON.stringify(newUser));
     setToken(newToken);
     setUser(newUser);
+    await syncPushSubscription();
   }, []);
 
   const googleLogin = useCallback(async (credential: string, role: 'buyer' | 'seller' = 'buyer') => {
@@ -60,6 +62,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await SecureStore.setItemAsync('user', JSON.stringify(newUser));
     setToken(newToken);
     setUser(newUser);
+    await syncPushSubscription();
   }, []);
 
   const register = useCallback(async (data: RegisterPayload) => {
@@ -69,6 +72,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await SecureStore.setItemAsync('user', JSON.stringify(newUser));
     setToken(newToken);
     setUser(newUser);
+    await syncPushSubscription();
   }, []);
 
   const logout = useCallback(async () => {
@@ -77,6 +81,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch {}
     await SecureStore.deleteItemAsync('token');
     await SecureStore.deleteItemAsync('user');
+    await removePushSubscription();
     setToken(null);
     setUser(null);
   }, []);
@@ -87,6 +92,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(response.data.user);
     } catch {}
   }, []);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    syncPushSubscription();
+  }, [isAuthenticated, user?._id]);
 
   return (
     <AuthContext.Provider

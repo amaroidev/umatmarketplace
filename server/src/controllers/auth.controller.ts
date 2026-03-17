@@ -3,6 +3,9 @@ import authService from '../services/auth.service';
 import env from '../config/env';
 import { emailService } from '../services/email.service';
 import User from '../models/User';
+import { uploadToCloudinary, deleteFromCloudinary } from '../utils/imageUpload';
+import fs from 'fs';
+import path from 'path';
 
 /**
  * @route   POST /api/auth/register
@@ -117,7 +120,7 @@ export const updateProfile = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const { name, phone, avatar, studentId, location, bio } = req.body;
+    const { name, phone, avatar, studentId, location, bio, storeName, brandName } = req.body;
 
     const user = await authService.updateProfile(req.user!._id.toString(), {
       name,
@@ -126,11 +129,80 @@ export const updateProfile = async (
       studentId,
       location,
       bio,
+      storeName,
+      brandName,
     });
 
     res.status(200).json({
       success: true,
       message: 'Profile updated successfully.',
+      data: { user },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @route   POST /api/auth/profile/avatar
+ * @desc    Upload/update user avatar
+ * @access  Private
+ */
+export const uploadAvatar = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    if (!req.file) {
+      res.status(400).json({ success: false, message: 'No avatar image uploaded.' });
+      return;
+    }
+
+    const currentUser = await User.findById(req.user!._id);
+    if (!currentUser) {
+      res.status(404).json({ success: false, message: 'User not found.' });
+      return;
+    }
+
+    let avatarUrl = '';
+    try {
+      const uploaded = await uploadToCloudinary(req.file.buffer, 'campusmarketplace/avatars');
+      avatarUrl = uploaded.url;
+    } catch {
+      const uploadsDir = path.resolve(process.cwd(), 'uploads', 'avatars');
+      if (!fs.existsSync(uploadsDir)) {
+        fs.mkdirSync(uploadsDir, { recursive: true });
+      }
+
+      const mime = req.file.mimetype || 'image/jpeg';
+      const ext = mime.includes('png') ? 'png' : mime.includes('webp') ? 'webp' : mime.includes('gif') ? 'gif' : 'jpg';
+      const filename = `${req.user!._id.toString()}-${Date.now()}.${ext}`;
+      const filePath = path.join(uploadsDir, filename);
+      fs.writeFileSync(filePath, req.file.buffer);
+      avatarUrl = `${req.protocol}://${req.get('host')}/uploads/avatars/${filename}?v=${Date.now()}`;
+    }
+
+    const oldAvatar = currentUser.avatar || '';
+    if (oldAvatar.includes('/campusmarketplace/avatars/')) {
+      const marker = '/upload/';
+      const markerIndex = oldAvatar.indexOf(marker);
+      if (markerIndex >= 0) {
+        const publicPath = oldAvatar.slice(markerIndex + marker.length).replace(/^v\d+\//, '');
+        const publicId = publicPath.replace(/\.[a-z0-9]+$/i, '');
+        if (publicId) {
+          await deleteFromCloudinary(publicId);
+        }
+      }
+    }
+
+    const user = await authService.updateProfile(req.user!._id.toString(), {
+      avatar: avatarUrl,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Profile photo updated.',
       data: { user },
     });
   } catch (error) {
@@ -305,7 +377,7 @@ export const googleLogin = async (
       return;
     }
 
-    const { user, token } = await authService.googleLogin(credential, role);
+    const { user, token, isNewUser, needsProfileCompletion } = await authService.googleLogin(credential, role);
 
     // Set cookie
     res.cookie('token', token, {
@@ -318,7 +390,7 @@ export const googleLogin = async (
     res.status(200).json({
       success: true,
       message: 'Google login successful.',
-      data: { user, token },
+      data: { user, token, isNewUser, needsProfileCompletion },
     });
   } catch (error) {
     next(error);

@@ -136,7 +136,7 @@ const Orders: React.FC = () => {
                         {item?.title || 'Unknown Product'}
                       </h3>
                       <p className="text-xs text-earth-500 mt-0.5">
-                        #{order.orderNumber} &middot; {order.seller.name}
+                        #{order.orderNumber} &middot; {(order.seller as any).storeName || (order.seller as any).brandName || order.seller.name}
                       </p>
                     </div>
                     <ChevronRight className="h-4 w-4 text-earth-300 group-hover:text-earth-600 flex-shrink-0 mt-0.5 transition-colors" />

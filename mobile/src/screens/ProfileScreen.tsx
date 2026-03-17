@@ -39,6 +39,7 @@ const ProfileScreen = ({ navigation }: any) => {
           <Text style={styles.avatarInitial}>{user?.name?.charAt(0).toUpperCase() ?? '?'}</Text>
         </View>
         <Text style={styles.name}>{user?.name}</Text>
+        {(user?.storeName || user?.brandName) ? <Text style={styles.storeName}>{user?.storeName || user?.brandName}</Text> : null}
         <Text style={styles.email}>{user?.email}</Text>
         <View style={styles.roleBadge}>
           <Text style={styles.roleText}>{user?.role?.toUpperCase()}</Text>
@@ -101,6 +102,7 @@ const styles = StyleSheet.create({
   },
   avatarInitial: { fontSize: 34, fontWeight: '800', color: '#fff' },
   name: { fontSize: 22, fontWeight: '800', color: '#111827' },
+  storeName: { marginTop: 4, fontSize: 13, color: '#374151', fontWeight: '600' },
   email: { marginTop: 4, fontSize: 14, color: '#6b7280' },
   roleBadge: {
     marginTop: 8,

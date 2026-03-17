@@ -17,6 +17,8 @@ export interface IOrderDocument extends Document {
   pickupLocation?: string;
   deliveryAddress?: string;
   deliveryFee: number;
+  discountAmount: number;
+  couponCode?: string;
   note?: string;
   payment?: mongoose.Types.ObjectId;
   cancelReason?: string;
@@ -95,6 +97,16 @@ const orderSchema = new Schema<IOrderDocument>(
       type: Number,
       default: 0,
       min: 0,
+    },
+    discountAmount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    couponCode: {
+      type: String,
+      trim: true,
+      uppercase: true,
     },
     note: String,
     payment: {

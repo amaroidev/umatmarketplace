@@ -26,6 +26,7 @@ import CreateListingScreen from '../screens/CreateListingScreen';
 import ProfileEditScreen from '../screens/ProfileEditScreen';
 import SellerAnalyticsScreen from '../screens/SellerAnalyticsScreen';
 import MyListingsScreen from '../screens/MyListingsScreen';
+import { navigationRef } from './navigationRef';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -159,7 +160,7 @@ const AppNavigator = () => {
   }
 
   return (
-    <NavigationContainer>
+    <NavigationContainer ref={navigationRef}>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {isAuthenticated ? (
           <Stack.Screen name="Main" component={MainTabs} />

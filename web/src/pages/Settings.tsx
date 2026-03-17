@@ -11,6 +11,10 @@ import {
   Check,
   Lock,
   Smartphone,
+  Store,
+  ShoppingBag,
+  Megaphone,
+  Package,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
@@ -37,6 +41,12 @@ interface PrivacyPrefs {
   showOnlineStatus: boolean;
 }
 
+interface RoleSettingsItem {
+  key: keyof NotifPrefs;
+  label: string;
+  desc: string;
+}
+
 const SettingsPage: React.FC = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -55,6 +65,8 @@ const SettingsPage: React.FC = () => {
   const [pushEnabled, setPushEnabled] = useState(false);
   const [togglingPush, setTogglingPush] = useState(false);
   const [testingPush, setTestingPush] = useState(false);
+  const isSellerView = user?.role === 'seller' || user?.role === 'admin';
+  const roleBadge = isSellerView ? 'Seller settings' : 'Buyer settings';
 
   useEffect(() => {
     // Check if currently subscribed
@@ -172,6 +184,36 @@ const SettingsPage: React.FC = () => {
     { id: 'account', label: 'Account', icon: <Shield className="h-4 w-4" /> },
   ];
 
+  const notificationItems: RoleSettingsItem[] = isSellerView
+    ? [
+        { key: 'orderUpdates', label: 'Sales & order events', desc: 'New purchases, cancellations, fulfillment, and payout-related updates.' },
+        { key: 'messages', label: 'Buyer messages', desc: 'When buyers ask about your listings or negotiate.' },
+        { key: 'reviews', label: 'Seller feedback', desc: 'New reviews on your store and listing quality updates.' },
+        { key: 'promotions', label: 'Boost opportunities', desc: 'Featured slots, campaign invites, and merchandising opportunities.' },
+        { key: 'systemAlerts', label: 'Compliance & system alerts', desc: 'Moderation, policy issues, account health, and security notices.' },
+      ]
+    : [
+        { key: 'orderUpdates', label: 'Order updates', desc: 'Payment, confirmation, ready-for-pickup, and delivery status changes.' },
+        { key: 'messages', label: 'Seller replies', desc: 'When sellers respond to your inquiries and offers.' },
+        { key: 'reviews', label: 'Review reminders', desc: 'Reminders to review completed orders and review responses.' },
+        { key: 'promotions', label: 'Deals & promotions', desc: 'Price drops, featured deals, and curated campus campaigns.' },
+        { key: 'systemAlerts', label: 'Security alerts', desc: 'Important account security events and platform notices.' },
+      ];
+
+  const privacyItems: { key: keyof PrivacyPrefs; label: string; desc: string }[] = isSellerView
+    ? [
+        { key: 'showPhone', label: 'Show seller phone', desc: 'Let buyers contact you directly for fast pickup coordination.' },
+        { key: 'showLocation', label: 'Show pickup area', desc: 'Display your preferred campus pickup zone on listings.' },
+        { key: 'allowMessages', label: 'Allow buyer messages', desc: 'Enable new buyer chat requests from listing pages.' },
+        { key: 'showOnlineStatus', label: 'Show response availability', desc: 'Show online/last active status to signal response speed.' },
+      ]
+    : [
+        { key: 'showPhone', label: 'Show phone number', desc: 'Your phone number will be visible on your profile.' },
+        { key: 'showLocation', label: 'Show location', desc: 'Your campus area appears on your profile and order context.' },
+        { key: 'allowMessages', label: 'Allow messages', desc: 'Sellers can start chats with you when needed.' },
+        { key: 'showOnlineStatus', label: 'Show online status', desc: 'Others can see when you were last active in chats.' },
+      ];
+
   return (
     <div className="min-h-[calc(100vh-56px)] bg-white">
 
@@ -183,6 +225,10 @@ const SettingsPage: React.FC = () => {
           </p>
           <h1 className="text-4xl font-black uppercase tracking-tight text-white">Settings</h1>
           <p className="mt-2 text-sm text-white/35">Manage your preferences, privacy, and account.</p>
+          <div className="mt-5 inline-flex items-center gap-2 border border-white/15 bg-white/5 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.2em] text-white/60">
+            {isSellerView ? <Store className="h-3.5 w-3.5" /> : <ShoppingBag className="h-3.5 w-3.5" />}
+            {roleBadge}
+          </div>
 
           {/* Tabs at bottom of hero */}
           <div className="flex border-t border-white/[0.07] mt-10">
@@ -217,19 +263,13 @@ const SettingsPage: React.FC = () => {
             </div>
 
             <p className="text-sm text-earth-500 mb-8 max-w-lg">
-              Choose which notifications you receive. These apply to in-app notifications and, when enabled, browser push notifications.
+              {isSellerView
+                ? 'Control sales alerts, buyer messages, and promotion opportunities for your store.'
+                : 'Control order, chat, and deal alerts for your buying activity.'}
             </p>
 
             <div className="divide-y divide-earth-100 border border-earth-200 mb-10">
-              {(
-                [
-                  { key: 'orderUpdates', label: 'Order updates', desc: 'Status changes, confirmations, and shipping updates for your orders.' },
-                  { key: 'messages', label: 'New messages', desc: 'When someone sends you a chat message.' },
-                  { key: 'reviews', label: 'Reviews & replies', desc: 'When someone leaves a review on your listing or replies to yours.' },
-                  { key: 'promotions', label: 'Promotions', desc: 'Featured listing opportunities and marketplace announcements.' },
-                  { key: 'systemAlerts', label: 'System alerts', desc: 'Important account security events and policy updates.' },
-                ] as { key: keyof NotifPrefs; label: string; desc: string }[]
-              ).map((item) => (
+              {notificationItems.map((item) => (
                 <div key={item.key} className="flex items-center justify-between px-6 py-5">
                   <div>
                     <p className="text-sm font-semibold text-earth-900">{item.label}</p>
@@ -280,7 +320,9 @@ const SettingsPage: React.FC = () => {
                   <div>
                     <p className="text-sm font-semibold text-earth-900">Enable browser notifications</p>
                     <p className="text-xs text-earth-500 mt-0.5 max-w-sm">
-                      Receive instant alerts even when you're not actively using the app. This applies only to the current browser.
+                      {isSellerView
+                        ? 'Get real-time sales and buyer chat alerts for this browser.'
+                        : 'Get instant order and seller reply alerts for this browser.'}
                     </p>
                   </div>
                 </div>
@@ -330,18 +372,13 @@ const SettingsPage: React.FC = () => {
             </div>
 
             <p className="text-sm text-earth-500 mb-8 max-w-lg">
-              Control what other students can see about you and how you can be reached.
+              {isSellerView
+                ? 'Control what buyers see on your store profile and how they can reach you.'
+                : 'Control what sellers and other students can see about you.'}
             </p>
 
             <div className="divide-y divide-earth-100 border border-earth-200 mb-10">
-              {(
-                [
-                  { key: 'showPhone', label: 'Show phone number', desc: 'Your phone number will be visible on your public profile.' },
-                  { key: 'showLocation', label: 'Show location', desc: 'Your campus location will appear on your listings and profile.' },
-                  { key: 'allowMessages', label: 'Allow messages', desc: 'Other users can initiate a conversation with you.' },
-                  { key: 'showOnlineStatus', label: 'Show online status', desc: 'Others can see when you were last active in chats.' },
-                ] as { key: keyof PrivacyPrefs; label: string; desc: string }[]
-              ).map((item) => (
+              {privacyItems.map((item) => (
                 <div key={item.key} className="flex items-center justify-between px-6 py-5">
                   <div>
                     <p className="text-sm font-semibold text-earth-900">{item.label}</p>
@@ -372,7 +409,9 @@ const SettingsPage: React.FC = () => {
                 <div>
                   <p className="text-sm font-semibold text-earth-900 mb-1">Your data is yours</p>
                   <p className="text-xs text-earth-500 leading-relaxed">
-                    We never sell your personal data to third parties. All data is stored securely on our servers and used only to operate the marketplace.
+                    We never sell your personal data to third parties. {isSellerView
+                      ? 'Store metrics and listing data are used only for marketplace operations and seller analytics.'
+                      : 'Buyer activity is used only to run your account experience and recommendations.'}
                   </p>
                 </div>
               </div>
@@ -420,6 +459,24 @@ const SettingsPage: React.FC = () => {
 
             {/* Actions */}
             <div className="space-y-3 mb-12">
+              {isSellerView && (
+                <button
+                  onClick={() => navigate('/seller/analytics')}
+                  className="w-full flex items-center justify-between border border-earth-200 px-6 py-4 text-sm text-earth-700 hover:border-earth-400 transition-colors"
+                >
+                  <span>Seller analytics</span>
+                  <Megaphone className="h-4 w-4 text-earth-400" />
+                </button>
+              )}
+              {isSellerView && (
+                <button
+                  onClick={() => navigate('/my-listings')}
+                  className="w-full flex items-center justify-between border border-earth-200 px-6 py-4 text-sm text-earth-700 hover:border-earth-400 transition-colors"
+                >
+                  <span>Manage listings</span>
+                  <Package className="h-4 w-4 text-earth-400" />
+                </button>
+              )}
               <button
                 onClick={() => navigate('/profile')}
                 className="w-full flex items-center justify-between border border-earth-200 px-6 py-4 text-sm text-earth-700 hover:border-earth-400 transition-colors"

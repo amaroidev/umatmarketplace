@@ -24,6 +24,8 @@ interface LoginData {
 interface AuthResult {
   user: IUserDocument;
   token: string;
+  isNewUser?: boolean;
+  needsProfileCompletion?: boolean;
 }
 
 class AuthService {
@@ -113,6 +115,8 @@ class AuthService {
       studentId: string;
       location: string;
       bio: string;
+      storeName: string;
+      brandName: string;
     }>
   ): Promise<IUserDocument> {
     const user = await User.findByIdAndUpdate(
@@ -155,11 +159,20 @@ class AuthService {
   /**
    * Google Login
    */
-  async googleLogin(credential: string, role: 'buyer' | 'seller' = 'buyer'): Promise<AuthResult> {
+  async googleLogin(credential: string, role?: 'buyer' | 'seller'): Promise<AuthResult> {
     try {
+      const audiences = (process.env.GOOGLE_CLIENT_IDS || env.GOOGLE_CLIENT_ID || '')
+        .split(',')
+        .map((v) => v.trim())
+        .filter(Boolean);
+
+      if (audiences.length === 0) {
+        throw ApiError.badRequest('Google sign-in is not configured on server.');
+      }
+
       const ticket = await client.verifyIdToken({
         idToken: credential,
-        audience: env.GOOGLE_CLIENT_ID,
+        audience: audiences,
       });
       const payload = ticket.getPayload();
       
@@ -169,19 +182,27 @@ class AuthService {
 
       const email = payload.email.toLowerCase();
       let user = await User.findOne({ email });
+      let isNewUser = false;
+      const fallbackAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(payload.name || 'Campus User')}&background=1f2937&color=ffffff&bold=true`;
 
       if (!user) {
+        if (!role || !['buyer', 'seller'].includes(role)) {
+          throw ApiError.badRequest('New Google accounts must sign up first and choose a role.');
+        }
+
         // Create a new user since they don't exist
         // Google doesn't provide phone/studentId so we'll use defaults or leave them blank
         user = await User.create({
           name: payload.name || 'User',
           email,
+          phone: '',
           role,
           isVerified: payload.email_verified || false,
-          avatar: payload.picture,
+          avatar: payload.picture || fallbackAvatar,
           // random strong password since they use Google
           password: Math.random().toString(36).slice(-10) + Math.random().toString(36).slice(-10),
         });
+        isNewUser = true;
       } else {
         // If user is banned
         if (user.isBanned) {
@@ -189,8 +210,8 @@ class AuthService {
         }
         
         // Ensure avatar is updated if they didn't have one
-        if (!user.avatar && payload.picture) {
-          user.avatar = payload.picture;
+        if (!user.avatar) {
+          user.avatar = payload.picture || fallbackAvatar;
           await user.save();
         }
       }
@@ -200,10 +221,18 @@ class AuthService {
         role: user.role,
       });
 
-      return { user, token };
+      const needsProfileCompletion = !user.phone || user.phone.trim().length < 10;
+
+      return { user, token, isNewUser, needsProfileCompletion };
     } catch (error: any) {
       if (error instanceof ApiError) throw error;
-      throw ApiError.unauthorized('Google authentication failed');
+      const raw = String(error?.message || 'Google authentication failed');
+      const hint = raw.toLowerCase().includes('audience')
+        ? 'Google client ID mismatch (audience).'
+        : raw.toLowerCase().includes('token used too late')
+        ? 'Google token expired. Please try again.'
+        : 'Google authentication failed.';
+      throw ApiError.unauthorized(hint);
     }
   }
 }

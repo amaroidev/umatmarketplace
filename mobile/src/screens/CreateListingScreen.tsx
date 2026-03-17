@@ -43,7 +43,7 @@ const CreateListingScreen = ({ navigation }: any) => {
 
   useEffect(() => {
     navigation.setOptions({ headerShown: true, title: 'New Listing', headerBackTitle: 'Back' });
-    api.get('/categories').then((res) => {
+    api.get('/categories/with-counts').then((res) => {
       if (res.data.success) setCategories(res.data.data.categories ?? res.data.data ?? []);
     }).catch(() => {}).finally(() => setCatLoading(false));
   }, [navigation]);
@@ -118,7 +118,7 @@ const CreateListingScreen = ({ navigation }: any) => {
         <Text style={styles.label}>Category *</Text>
         {catLoading ? (
           <ActivityIndicator style={{ marginVertical: 12 }} color="#2563eb" />
-        ) : (
+        ) : categories.length > 0 ? (
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroll}>
             {categories.map((cat) => (
               <TouchableOpacity
@@ -132,6 +132,10 @@ const CreateListingScreen = ({ navigation }: any) => {
               </TouchableOpacity>
             ))}
           </ScrollView>
+        ) : (
+          <View style={styles.emptyCategoryBox}>
+            <Text style={styles.emptyCategoryText}>No categories found. Seed categories on server.</Text>
+          </View>
         )}
 
         <Text style={styles.label}>Condition *</Text>
@@ -241,6 +245,18 @@ const styles = StyleSheet.create({
   textarea: { minHeight: 90, textAlignVertical: 'top' },
   chipScroll: { marginBottom: 4 },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  emptyCategoryBox: {
+    backgroundColor: '#fff7ed',
+    borderWidth: 1,
+    borderColor: '#fed7aa',
+    borderRadius: 10,
+    padding: 12,
+  },
+  emptyCategoryText: {
+    color: '#9a3412',
+    fontSize: 12,
+    fontWeight: '600',
+  },
   chip: {
     paddingHorizontal: 14,
     paddingVertical: 7,
