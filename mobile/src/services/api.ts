@@ -8,6 +8,7 @@ const API_URL =
 
 const api = axios.create({
   baseURL: API_URL,
+  timeout: 15000,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -33,6 +34,13 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
+    if (!error.response) {
+      error.userMessage =
+        error.code === 'ECONNABORTED'
+          ? 'Request timed out. Check your connection and try again.'
+          : 'Cannot reach server. Check internet or API URL.';
+    }
+
     if (error.response?.status === 401) {
       try {
         await SecureStore.deleteItemAsync('token');

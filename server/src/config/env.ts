@@ -17,6 +17,7 @@ interface EnvConfig {
   PAYSTACK_SECRET_KEY: string;
   PAYSTACK_PUBLIC_KEY: string;
   GOOGLE_CLIENT_ID: string;
+  SUPABASE_URL: string;
   CLIENT_URL: string;
 }
 
@@ -33,6 +34,7 @@ const env: EnvConfig = {
   PAYSTACK_SECRET_KEY: process.env.PAYSTACK_SECRET_KEY || '',
   PAYSTACK_PUBLIC_KEY: process.env.PAYSTACK_PUBLIC_KEY || '',
   GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID || '',
+  SUPABASE_URL: process.env.SUPABASE_URL || '',
   CLIENT_URL: process.env.CLIENT_URL || 'http://localhost:5173',
 };
 

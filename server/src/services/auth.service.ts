@@ -1,24 +1,19 @@
 import User, { IUserDocument } from '../models/User';
 import { generateToken } from '../utils/jwt';
 import ApiError from '../utils/ApiError';
-import { OAuth2Client } from 'google-auth-library';
-import env from '../config/env';
-
-const client = new OAuth2Client(env.GOOGLE_CLIENT_ID);
+import { verifySupabaseToken } from '../utils/supabaseJwt';
 
 interface RegisterData {
+  supabaseAccessToken: string;
   name: string;
-  email: string;
   phone: string;
-  password: string;
   role: 'buyer' | 'seller';
   studentId?: string;
   location?: string;
 }
 
 interface LoginData {
-  email: string;
-  password: string;
+  supabaseAccessToken: string;
 }
 
 interface AuthResult {
@@ -29,29 +24,64 @@ interface AuthResult {
 }
 
 class AuthService {
+  private async findOrLinkSupabaseUser(supabaseId: string, email: string): Promise<IUserDocument | null> {
+    let user = await User.findOne({ supabaseId });
+    if (user) return user;
+
+    user = await User.findOne({ email: email.toLowerCase() });
+    if (user && !user.supabaseId) {
+      user.supabaseId = supabaseId;
+      await user.save();
+      return user;
+    }
+
+    return user;
+  }
+
+  private buildToken(user: IUserDocument): string {
+    return generateToken({
+      userId: user._id.toString(),
+      role: user.role,
+    });
+  }
+
+  private randomPassword(): string {
+    return `${Math.random().toString(36).slice(-10)}${Math.random().toString(36).slice(-10)}`;
+  }
+
   /**
    * Register a new user
    */
   async register(data: RegisterData): Promise<AuthResult> {
-    const { email } = data;
-
-    // Check if user already exists
-    const existingUser = await User.findOne({ email: email.toLowerCase() });
-    if (existingUser) {
-      throw ApiError.conflict('An account with this email already exists.');
+    const payload = await verifySupabaseToken(data.supabaseAccessToken);
+    const supabaseId = payload.sub;
+    const email = (payload.email || '').toLowerCase();
+    if (!supabaseId || !email) {
+      throw ApiError.badRequest('Invalid Supabase user token.');
     }
 
-    // Create user
+    const existingUser = await this.findOrLinkSupabaseUser(supabaseId, email);
+    if (existingUser) {
+      throw ApiError.conflict('An account with this email already exists. Please login instead.');
+    }
+
+    const metadataName = String(payload.user_metadata?.name || payload.user_metadata?.full_name || '').trim();
+    const metadataAvatar = String(payload.user_metadata?.avatar_url || payload.user_metadata?.picture || '').trim();
+
     const user = await User.create({
-      ...data,
-      email: email.toLowerCase(),
+      supabaseId,
+      name: (data.name || metadataName || 'User').trim(),
+      email,
+      phone: data.phone || '',
+      role: data.role || 'buyer',
+      studentId: data.studentId || '',
+      location: data.location || '',
+      isVerified: true,
+      avatar: metadataAvatar,
+      password: this.randomPassword(),
     });
 
-    // Generate token
-    const token = generateToken({
-      userId: user._id.toString(),
-      role: user.role,
-    });
+    const token = this.buildToken(user);
 
     return { user, token };
   }
@@ -60,15 +90,17 @@ class AuthService {
    * Login user
    */
   async login(data: LoginData): Promise<AuthResult> {
-    const { email, password } = data;
+    const payload = await verifySupabaseToken(data.supabaseAccessToken);
+    const supabaseId = payload.sub;
+    const email = (payload.email || '').toLowerCase();
+    if (!supabaseId || !email) {
+      throw ApiError.badRequest('Invalid Supabase user token.');
+    }
 
-    // Find user with password field
-    const user = await User.findOne({ email: email.toLowerCase() }).select(
-      '+password'
-    );
+    const user = await this.findOrLinkSupabaseUser(supabaseId, email);
 
     if (!user) {
-      throw ApiError.unauthorized('Invalid email or password.');
+      throw ApiError.unauthorized('No account found. Please sign up first.');
     }
 
     if (user.isBanned) {
@@ -77,17 +109,7 @@ class AuthService {
       );
     }
 
-    // Check password
-    const isMatch = await user.comparePassword(password);
-    if (!isMatch) {
-      throw ApiError.unauthorized('Invalid email or password.');
-    }
-
-    // Generate token
-    const token = generateToken({
-      userId: user._id.toString(),
-      role: user.role,
-    });
+    const token = this.buildToken(user);
 
     return { user, token };
   }
@@ -172,80 +194,59 @@ class AuthService {
    * Google Login
    */
   async googleLogin(credential: string, role?: 'buyer' | 'seller'): Promise<AuthResult> {
-    try {
-      const audiences = (process.env.GOOGLE_CLIENT_IDS || env.GOOGLE_CLIENT_ID || '')
-        .split(',')
-        .map((v) => v.trim())
-        .filter(Boolean);
-
-      if (audiences.length === 0) {
-        throw ApiError.badRequest('Google sign-in is not configured on server.');
-      }
-
-      const ticket = await client.verifyIdToken({
-        idToken: credential,
-        audience: audiences,
-      });
-      const payload = ticket.getPayload();
-      
-      if (!payload || !payload.email) {
-        throw ApiError.badRequest('Invalid Google token');
-      }
-
-      const email = payload.email.toLowerCase();
-      let user = await User.findOne({ email });
-      let isNewUser = false;
-      const fallbackAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(payload.name || 'Campus User')}&background=1f2937&color=ffffff&bold=true`;
-
-      if (!user) {
-        if (!role || !['buyer', 'seller'].includes(role)) {
-          throw ApiError.badRequest('New Google accounts must sign up first and choose a role.');
-        }
-
-        // Create a new user since they don't exist
-        // Google doesn't provide phone/studentId so we'll use defaults or leave them blank
-        user = await User.create({
-          name: payload.name || 'User',
-          email,
-          phone: '',
-          role,
-          isVerified: payload.email_verified || false,
-          avatar: payload.picture || fallbackAvatar,
-          // random strong password since they use Google
-          password: Math.random().toString(36).slice(-10) + Math.random().toString(36).slice(-10),
-        });
-        isNewUser = true;
-      } else {
-        // If user is banned
-        if (user.isBanned) {
-          throw ApiError.forbidden('Your account has been suspended.');
-        }
-        
-        // Ensure avatar is updated if they didn't have one
-        if (!user.avatar) {
-          user.avatar = payload.picture || fallbackAvatar;
-          await user.save();
-        }
-      }
-
-      const token = generateToken({
-        userId: user._id.toString(),
-        role: user.role,
-      });
-
-      const needsProfileCompletion = !user.phone || user.phone.trim().length < 10;
-
-      return { user, token, isNewUser, needsProfileCompletion };
-    } catch (error: any) {
-      if (error instanceof ApiError) throw error;
-      const raw = String(error?.message || 'Google authentication failed');
-      const hint = raw.toLowerCase().includes('audience')
-        ? 'Google client ID mismatch (audience).'
-        : raw.toLowerCase().includes('token used too late')
-        ? 'Google token expired. Please try again.'
-        : 'Google authentication failed.';
-      throw ApiError.unauthorized(hint);
+    const payload = await verifySupabaseToken(credential);
+    const supabaseId = payload.sub;
+    const email = (payload.email || '').toLowerCase();
+    if (!supabaseId || !email) {
+      throw ApiError.badRequest('Invalid Supabase user token.');
     }
+
+    let user = await this.findOrLinkSupabaseUser(supabaseId, email);
+    let isNewUser = false;
+
+    const profileName = String(payload.user_metadata?.name || payload.user_metadata?.full_name || '').trim();
+    const profileAvatar = String(payload.user_metadata?.avatar_url || payload.user_metadata?.picture || '').trim();
+    const fallbackAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(profileName || 'Campus User')}&background=1f2937&color=ffffff&bold=true`;
+
+    if (!user) {
+      if (!role || !['buyer', 'seller'].includes(role)) {
+        throw ApiError.badRequest('New Google accounts must sign up first and choose a role.');
+      }
+
+      user = await User.create({
+        supabaseId,
+        name: profileName || 'User',
+        email,
+        phone: '',
+        role,
+        isVerified: true,
+        avatar: profileAvatar || fallbackAvatar,
+        password: this.randomPassword(),
+      });
+      isNewUser = true;
+    } else {
+      if (user.isBanned) {
+        throw ApiError.forbidden('Your account has been suspended.');
+      }
+
+      let shouldSave = false;
+      if (!user.avatar) {
+        user.avatar = profileAvatar || fallbackAvatar;
+        shouldSave = true;
+      }
+      if (!user.supabaseId) {
+        user.supabaseId = supabaseId;
+        shouldSave = true;
+      }
+      if (shouldSave) {
+        await user.save();
+      }
+    }
+
+    const token = this.buildToken(user);
+    const needsProfileCompletion = !user.phone || user.phone.trim().length < 10;
+
+    return { user, token, isNewUser, needsProfileCompletion };
   }
 }
 

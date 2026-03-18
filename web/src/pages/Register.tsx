@@ -7,6 +7,7 @@ import { Eye, EyeOff, ArrowRight, Check } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 import { GoogleLogin } from '@react-oauth/google';
+import { supabase } from '../services/supabase';
 
 const registerSchema = z
   .object({
@@ -72,10 +73,10 @@ const RegisterPage: React.FC = () => {
     setIsSubmitting(true);
     try {
       const { confirmPassword, ...registerData } = data;
-      await registerUser(registerData);
+      await registerUser(registerData as any);
       navigate('/');
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Registration failed. Please try again.');
+      toast.error(error.response?.data?.message || error.message || 'Registration failed. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -85,13 +86,23 @@ const RegisterPage: React.FC = () => {
     if (credentialResponse.credential) {
       setIsSubmitting(true);
       try {
-        const result = await googleLogin(credentialResponse.credential, selectedRole);
+        const { data: authData, error } = await supabase.auth.signInWithIdToken({
+          provider: 'google',
+          token: credentialResponse.credential,
+        });
+
+        const accessToken = authData.session?.access_token;
+        if (error || !accessToken) {
+          throw new Error(error?.message || 'Supabase Google session failed.');
+        }
+
+        const result = await googleLogin(accessToken, selectedRole);
         if (result.needsProfileCompletion) {
           toast('Great, account created. Continue setup by completing profile details.');
         }
         navigate('/');
       } catch (err: any) {
-        toast.error(err.response?.data?.message || 'Google registration failed');
+        toast.error(err.response?.data?.message || err.message || 'Google registration failed');
       } finally {
         setIsSubmitting(false);
       }

@@ -2,15 +2,13 @@ import api from './api';
 import { User } from '../types';
 
 export interface LoginPayload {
-  email: string;
-  password: string;
+  supabaseAccessToken: string;
 }
 
 export interface RegisterPayload {
+  supabaseAccessToken: string;
   name: string;
-  email: string;
   phone: string;
-  password: string;
   role?: 'buyer' | 'seller';
   studentId?: string;
   location?: string;

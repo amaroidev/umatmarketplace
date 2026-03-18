@@ -15,17 +15,27 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as WebBrowser from 'expo-web-browser';
 import * as Google from 'expo-auth-session/providers/google';
-import { makeRedirectUri } from 'expo-auth-session';
+import { getRedirectUrl, makeRedirectUri } from 'expo-auth-session';
 import Constants from 'expo-constants';
 import { useAuth } from '../context/AuthContext';
 import AppAlert from '../components/AppAlert';
 import { colors } from '../theme';
+import { supabase } from '../services/supabase';
 
 WebBrowser.maybeCompleteAuthSession();
 
 const GOOGLE_WEB_CLIENT_ID = '904520092449-gnrmhr6h0ltvf74uqdh0s3pcflalljji.apps.googleusercontent.com';
 const GOOGLE_EXPO_CLIENT_ID = '904520092449-ph2so1ap5n2pgpqahclig9gmvar4k51m.apps.googleusercontent.com';
+const GOOGLE_IOS_CLIENT_ID = '335270104690-675e2r90uuv9ftplbofkmbndmbs1mngk.apps.googleusercontent.com';
 const isExpoGo = Constants.appOwnership === 'expo';
+
+const getExpoRedirectUri = () => {
+  try {
+    return getRedirectUrl('redirect');
+  } catch {
+    return makeRedirectUri({ path: 'redirect' });
+  }
+};
 
 const LoginScreen = ({ navigation }: any) => {
   const { login, googleLogin } = useAuth();
@@ -40,19 +50,49 @@ const LoginScreen = ({ navigation }: any) => {
   });
 
   const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
-    clientId: isExpoGo ? GOOGLE_EXPO_CLIENT_ID : GOOGLE_WEB_CLIENT_ID,
-    redirectUri: makeRedirectUri({ scheme: 'campusmarketplace' }),
+    clientId: isExpoGo ? GOOGLE_WEB_CLIENT_ID : GOOGLE_EXPO_CLIENT_ID,
+    ...(isExpoGo ? {} : { iosClientId: GOOGLE_IOS_CLIENT_ID }),
+    webClientId: GOOGLE_WEB_CLIENT_ID,
+    selectAccount: true,
+    redirectUri: isExpoGo ? getExpoRedirectUri() : undefined,
   });
 
   useEffect(() => {
     const runGoogle = async () => {
+      if (response?.type === 'error') {
+        const message =
+          response.error?.message ||
+          response.params?.error_description ||
+          response.params?.error ||
+          'Google sign-in failed';
+        setAlertState({ visible: true, title: 'Google sign-in failed', message });
+        return;
+      }
+
       if (response?.type !== 'success') return;
+
+      if (response.params?.error) {
+        const message = response.params.error_description || response.params.error;
+        setAlertState({ visible: true, title: 'Google sign-in failed', message });
+        return;
+      }
+
       const credential = response.params.id_token;
       if (!credential) return;
 
       setIsLoading(true);
       try {
-        const result = await googleLogin(credential);
+        const { data: authData, error } = await supabase.auth.signInWithIdToken({
+          provider: 'google',
+          token: credential,
+        });
+
+        const accessToken = authData.session?.access_token;
+        if (error || !accessToken) {
+          throw new Error(error?.message || 'Supabase Google session failed.');
+        }
+
+        const result = await googleLogin(accessToken);
         if (result?.isNewUser) {
           setAlertState({
             visible: true,
@@ -68,7 +108,7 @@ const LoginScreen = ({ navigation }: any) => {
           });
         }
       } catch (error: any) {
-        const message = error.response?.data?.message || 'Google sign-in failed';
+        const message = error.response?.data?.message || error.userMessage || error.message || 'Google sign-in failed';
         setAlertState({ visible: true, title: 'Google sign-in failed', message });
       } finally {
         setIsLoading(false);
@@ -87,7 +127,7 @@ const LoginScreen = ({ navigation }: any) => {
     try {
       await login(email.toLowerCase(), password);
     } catch (error: any) {
-      const message = error.response?.data?.message || 'Login failed';
+      const message = error.response?.data?.message || error.userMessage || error.message || 'Login failed';
       setAlertState({ visible: true, title: 'Login failed', message });
     } finally {
       setIsLoading(false);
@@ -148,7 +188,9 @@ const LoginScreen = ({ navigation }: any) => {
               </View>
 
               <Pressable
-                onPress={() => promptAsync()}
+                onPress={() => {
+                  promptAsync();
+                }}
                 disabled={!request || isLoading}
                 style={({ pressed }) => [
                   styles.googleBtn,

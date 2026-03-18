@@ -1,15 +1,16 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import authService, { RegisterData, LoginData, UpdateProfileData, ChangePasswordData } from '../services/auth.service';
+import authService, { RegisterData, UpdateProfileData, ChangePasswordData } from '../services/auth.service';
 import { User } from '../types';
 import toast from 'react-hot-toast';
+import { supabase } from '../services/supabase';
 
 interface AuthContextType {
   user: User | null;
   token: string | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  register: (data: RegisterData) => Promise<void>;
-  login: (data: LoginData) => Promise<void>;
+  register: (data: Omit<RegisterData, 'supabaseAccessToken'> & { email: string; password: string }) => Promise<void>;
+  login: (data: { email: string; password: string }) => Promise<void>;
   googleLogin: (credential: string, role?: 'buyer' | 'seller') => Promise<{ needsProfileCompletion: boolean; isNewUser?: boolean }>;
   logout: () => Promise<void>;
   updateProfile: (data: UpdateProfileData) => Promise<void>;
@@ -47,8 +48,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     loadUser();
   }, [token]);
 
-  const register = useCallback(async (data: RegisterData) => {
-    const response = await authService.register(data);
+  const register = useCallback(async (data: Omit<RegisterData, 'supabaseAccessToken'> & { email: string; password: string }) => {
+    const { data: authData, error } = await supabase.auth.signUp({
+      email: data.email.toLowerCase(),
+      password: data.password,
+      options: {
+        data: {
+          name: data.name,
+          role: data.role,
+        },
+      },
+    });
+
+    if (error || !authData.session?.access_token) {
+      throw new Error(error?.message || 'Registration failed at authentication provider.');
+    }
+
+    const response = await authService.register({
+      supabaseAccessToken: authData.session.access_token,
+      name: data.name,
+      phone: data.phone,
+      role: data.role,
+      studentId: data.studentId,
+      location: data.location,
+    });
     const { user: newUser, token: newToken } = response.data;
 
     localStorage.setItem('token', newToken);
@@ -58,8 +81,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     toast.success('Account created successfully!', { duration: 1400 });
   }, []);
 
-  const login = useCallback(async (data: LoginData) => {
-    const response = await authService.login(data);
+  const login = useCallback(async (data: { email: string; password: string }) => {
+    const { data: authData, error } = await supabase.auth.signInWithPassword({
+      email: data.email.toLowerCase(),
+      password: data.password,
+    });
+
+    if (error || !authData.session?.access_token) {
+      throw new Error(error?.message || 'Invalid email or password.');
+    }
+
+    const response = await authService.login({ supabaseAccessToken: authData.session.access_token });
     const { user: newUser, token: newToken } = response.data;
 
     localStorage.setItem('token', newToken);
@@ -90,6 +122,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await authService.logout();
     } catch {
       // Ignore errors during logout
+    }
+    try {
+      await supabase.auth.signOut();
+    } catch {
+      // Ignore sign out errors
     }
     localStorage.removeItem('token');
     localStorage.removeItem('user');

@@ -7,6 +7,7 @@ import { Eye, EyeOff, ArrowRight } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 import { GoogleLogin } from '@react-oauth/google';
+import { supabase } from '../services/supabase';
 
 const loginSchema = z.object({
   email: z.string().email('Please enter a valid email'),
@@ -38,7 +39,7 @@ const LoginPage: React.FC = () => {
       await login({ email: data.email.toLowerCase(), password: data.password });
       navigate(from, { replace: true });
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Login failed. Please try again.');
+      toast.error(error.response?.data?.message || error.message || 'Login failed. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -48,7 +49,17 @@ const LoginPage: React.FC = () => {
     if (credentialResponse.credential) {
       setIsSubmitting(true);
       try {
-        const result = await googleLogin(credentialResponse.credential, undefined);
+        const { data: authData, error } = await supabase.auth.signInWithIdToken({
+          provider: 'google',
+          token: credentialResponse.credential,
+        });
+
+        const accessToken = authData.session?.access_token;
+        if (error || !accessToken) {
+          throw new Error(error?.message || 'Supabase Google session failed.');
+        }
+
+        const result = await googleLogin(accessToken, undefined);
         if (result.isNewUser) {
           toast.error('No account found. Please sign up with Google and choose a role.');
           setTimeout(() => navigate('/register'), 700);
@@ -62,7 +73,7 @@ const LoginPage: React.FC = () => {
           navigate(from, { replace: true });
         }
       } catch (err: any) {
-        const message = err?.response?.data?.message || '';
+        const message = err?.response?.data?.message || err?.message || '';
         if (message.toLowerCase().includes('sign up first')) {
           toast.error('No account found. Please sign up with Google and choose a role.');
           setTimeout(() => navigate('/register'), 700);

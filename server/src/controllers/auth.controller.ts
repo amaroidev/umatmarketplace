@@ -19,13 +19,12 @@ export const register = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const { name, email, phone, password, role, studentId, location } = req.body;
+    const { name, phone, role, studentId, location, supabaseAccessToken } = req.body;
 
     const { user, token } = await authService.register({
+      supabaseAccessToken,
       name,
-      email,
       phone,
-      password,
       role: role || 'buyer',
       studentId,
       location,
@@ -67,9 +66,9 @@ export const login = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const { email, password } = req.body;
+    const { supabaseAccessToken } = req.body;
 
-    const { user, token } = await authService.login({ email, password });
+    const { user, token } = await authService.login({ supabaseAccessToken });
 
     // Set cookie
     res.cookie('token', token, {

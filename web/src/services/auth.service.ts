@@ -1,18 +1,16 @@
 import api from './api';
 
 export interface RegisterData {
+  supabaseAccessToken: string;
   name: string;
-  email: string;
   phone: string;
-  password: string;
   role: 'buyer' | 'seller';
   studentId?: string;
   location?: string;
 }
 
 export interface LoginData {
-  email: string;
-  password: string;
+  supabaseAccessToken: string;
 }
 
 export interface UpdateProfileData {
