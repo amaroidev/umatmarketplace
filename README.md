@@ -1,62 +1,43 @@
-# UMaT Marketplace
+# UMaT Marketplace (Private)
 
-Campus marketplace monorepo with:
-- `web/` React + Vite + Tailwind frontend
-- `server/` Express + TypeScript + MongoDB API
-- `mobile/` Expo React Native app
-- `shared/` shared types/constants
+UMaT Marketplace is a private multi-platform campus commerce product for student buying, selling, trust, and operations.
 
-## Curated Landing Images (Frontend-only)
+## Product Scope
 
-These are **not** stored in product database records.
-They are only fallback/editorial assets for the landing page when live listings are low.
+- Cross-platform marketplace: web + mobile with a shared backend.
+- Buyer flow: discover listings, chat with sellers, save items, checkout, order tracking, notifications.
+- Seller flow: create/edit listings, onboarding wizard, analytics, coupons, bundles, campaigns, bulk actions.
+- Admin flow: moderation queue, dispute center, ops retry jobs, audit logs, growth analytics.
 
-Put all files in:
-- `web/public/curated/`
+## Core Capabilities
 
-Use these exact filenames:
-- `lecture-kit.jpg`
-- `hostel-reset.jpg`
-- `weekend-fit.jpg`
-- `gadget-setup.jpg`
-- `sneaker-drop.jpg`
-- `study-corner.jpg`
-- `audio-pack.jpg`
-- `canvas-carry.jpg`
+- Marketplace intelligence:
+  - recommendations
+  - price insights and smart pricing assistance
+  - social proof surfaces (sold feed, top sellers)
+- Growth tooling:
+  - campaign scheduling with A/B slots
+  - coupon and bundle tooling
+  - bulk listing operations and advanced CSV import with preview
+- Trust and safety:
+  - dispute workflows
+  - trust signal tracking (identity/safe meetup/scam flags)
+  - profile completion gates for sensitive actions
+- Messaging:
+  - real-time chat via sockets
+  - quick replies, offer objects, and attachment metadata
+- Push and engagement:
+  - web push + Expo push subscription pipeline
+  - deep-link handling for notification taps
 
-### Download links (one per file)
+## System Layout
 
-- `lecture-kit.jpg`  
-  `https://source.unsplash.com/1200x1600/?student,desk,books,laptop`
+- `web/` — React + Vite client
+- `server/` — Express + TypeScript API
+- `mobile/` — Expo React Native app
+- `shared/` — shared contracts/utilities
 
-- `hostel-reset.jpg`  
-  `https://source.unsplash.com/1200x1600/?hostel,room,interior,minimal`
+## Notes
 
-- `weekend-fit.jpg`  
-  `https://source.unsplash.com/1200x1600/?fashion,streetwear,model`
-
-- `gadget-setup.jpg`  
-  `https://source.unsplash.com/1200x1600/?tech,workspace,gadgets,flatlay`
-
-- `sneaker-drop.jpg`  
-  `https://source.unsplash.com/1200x1600/?sneakers,shoes,fashion`
-
-- `study-corner.jpg`  
-  `https://source.unsplash.com/1200x1600/?study,desk,notebook,lamp`
-
-- `audio-pack.jpg`  
-  `https://source.unsplash.com/1200x1600/?headphones,earbuds,music,lifestyle`
-
-- `canvas-carry.jpg`  
-  `https://source.unsplash.com/1200x1600/?tote,bag,accessories,fashion`
-
-Recommended:
-- Aspect ratio: 3:4 or 4:5
-- Size: around 1200x1600
-- Keep optimized file size (< 400KB)
-
-## Run
-
-- Web: `npm run dev --prefix web`
-- Server: `npm run dev --prefix server`
-- Mobile: `npm run start --prefix mobile`
+- This repository is maintained for private product development.
+- Public setup and distribution instructions are intentionally omitted.
