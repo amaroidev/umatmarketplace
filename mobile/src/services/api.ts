@@ -4,7 +4,7 @@ import * as SecureStore from 'expo-secure-store';
 const API_URL =
   process.env.EXPO_PUBLIC_API_URL && !process.env.EXPO_PUBLIC_API_URL.includes('localhost')
     ? process.env.EXPO_PUBLIC_API_URL
-    : 'http://143.105.209.181:5000/api';
+    : 'http://192.168.88.32:5000/api';
 
 const api = axios.create({
   baseURL: API_URL,

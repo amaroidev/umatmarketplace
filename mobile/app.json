@@ -30,8 +30,8 @@
       "favicon": "./assets/favicon.png"
     },
     "extra": {
-      "apiUrl": "http://143.105.209.181:5000/api",
-      "socketUrl": "http://143.105.209.181:5000",
+      "apiUrl": "http://192.168.88.32:5000/api",
+      "socketUrl": "http://192.168.88.32:5000",
       "eas": {
         "projectId": "your-eas-project-id"
       }
