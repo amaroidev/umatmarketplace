@@ -227,7 +227,15 @@ const HomePage: React.FC = () => {
   const [loadingFeatured, setLoadingFeatured] = useState(true);
   const [loadingRecent, setLoadingRecent] = useState(true);
   const [loadingTrending, setLoadingTrending] = useState(true);
+  const [heroOffset, setHeroOffset] = useState(0);
   const marqueeRef = useRef<HTMLDivElement>(null);
+  const heroSectionRef = useRef<HTMLElement | null>(null);
+
+  const registerReveal = (el: HTMLElement | null, delayMs: number) => {
+    if (!el) return;
+    el.style.setProperty('--reveal-delay', `${delayMs}ms`);
+    el.classList.add('reveal-on-scroll');
+  };
 
   useEffect(() => {
     categoryService.getCategoriesWithCounts().then((res) => {
@@ -261,6 +269,46 @@ const HomePage: React.FC = () => {
     productService.getCollections(3).then((res) => {
       if (res.success) setCollections(res.data);
     }).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    const items = Array.from(document.querySelectorAll<HTMLElement>('.reveal-on-scroll'));
+    if (items.length === 0) return;
+
+    const observer = new IntersectionObserver(
+      (entries, obs) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          const target = entry.target as HTMLElement;
+          target.classList.add('is-visible');
+          obs.unobserve(target);
+        });
+      },
+      { threshold: 0.18, rootMargin: '0px 0px -8% 0px' }
+    );
+
+    items.forEach((item) => observer.observe(item));
+
+    return () => observer.disconnect();
+  }, [
+    loadingFeatured,
+    loadingRecent,
+    loadingTrending,
+    categories.length,
+    featuredProducts.length,
+    recentProducts.length,
+    trendingProducts.length,
+  ]);
+
+  useEffect(() => {
+    const onScroll = () => {
+      const y = window.scrollY;
+      setHeroOffset(Math.min(y * 0.18, 48));
+    };
+
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
   useEffect(() => {
@@ -356,7 +404,7 @@ const HomePage: React.FC = () => {
       {/* ════════════════════════════════════════════════
           HERO
       ════════════════════════════════════════════════ */}
-      <section className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-[#0a0a0a] px-4 text-center">
+      <section ref={heroSectionRef} className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-[#0a0a0a] px-4 text-center">
         {/* Grid texture */}
         <div
           className="pointer-events-none absolute inset-0 opacity-[0.035]"
@@ -364,29 +412,45 @@ const HomePage: React.FC = () => {
             backgroundImage:
               'linear-gradient(to right,#fff 1px,transparent 1px),linear-gradient(to bottom,#fff 1px,transparent 1px)',
             backgroundSize: '72px 72px',
+            transform: `translate3d(0, ${heroOffset * -0.4}px, 0)`,
           }}
         />
         {/* Radial glow */}
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-10%,rgba(255,255,255,0.06),transparent)]" />
+        <div
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-10%,rgba(255,255,255,0.06),transparent)]"
+          style={{ transform: `translate3d(0, ${heroOffset * 0.55}px, 0)` }}
+        />
 
         {/* Eyebrow */}
-        <span className="relative z-10 mb-10 inline-flex items-center gap-2 border border-white/10 bg-white/5 px-5 py-2 text-[10px] font-bold uppercase tracking-[0.3em] text-white/50">
+        <span
+          className="hero-reveal relative z-10 mb-10 inline-flex items-center gap-2 border border-white/10 bg-white/5 px-5 py-2 text-[10px] font-bold uppercase tracking-[0.3em] text-white/50"
+          style={{ ['--hero-delay' as any]: '60ms' }}
+        >
           <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
           UMaT Student Marketplace
         </span>
 
         {/* Headline */}
-        <h1 className="relative z-10 max-w-5xl text-[clamp(3rem,9vw,8rem)] font-black leading-[0.88] tracking-[-0.04em] text-white">
+        <h1
+          className="hero-reveal relative z-10 max-w-5xl text-[clamp(3rem,9vw,8rem)] font-black leading-[0.88] tracking-[-0.04em] text-white"
+          style={{ ['--hero-delay' as any]: '150ms' }}
+        >
           Buy. Sell.<br />
           <span className="text-white/25">Stay on campus.</span>
         </h1>
 
-        <p className="relative z-10 mt-8 max-w-md text-base leading-7 text-white/40">
+        <p
+          className="hero-reveal relative z-10 mt-8 max-w-md text-base leading-7 text-white/40"
+          style={{ ['--hero-delay' as any]: '250ms' }}
+        >
           The only marketplace built for UMaT students. Textbooks, electronics, food, services — everything you need, from people you know.
         </p>
 
         {/* Search */}
-        <div className="relative z-[60] mt-12 w-full max-w-2xl">
+        <div
+          className="hero-reveal relative z-[60] mt-12 w-full max-w-2xl"
+          style={{ ['--hero-delay' as any]: '340ms' }}
+        >
           <SearchBar
             placeholder="Search textbooks, phones, food, services..."
             className="[&_.searchbar-input]:h-14 [&_.searchbar-input]:rounded-none [&_.searchbar-input]:border-0 [&_.searchbar-input]:border-b [&_.searchbar-input]:border-white/20 [&_.searchbar-input]:bg-white/5 [&_.searchbar-input]:px-5 [&_.searchbar-input]:text-base [&_.searchbar-input]:text-white [&_.searchbar-input]:placeholder:text-white/25 [&_.searchbar-input]:focus:border-white/50 [&_.searchbar-input]:focus:outline-none [&_.searchbar-input]:focus:ring-0 [&_.searchbar-panel]:mt-2 [&_.searchbar-panel]:border-white/10 [&_.searchbar-panel]:bg-[#1c1c1c]"
@@ -394,7 +458,10 @@ const HomePage: React.FC = () => {
         </div>
 
         {/* CTAs */}
-        <div className="relative z-10 mt-8 flex flex-wrap items-center justify-center gap-3">
+        <div
+          className="hero-reveal relative z-10 mt-8 flex flex-wrap items-center justify-center gap-3"
+          style={{ ['--hero-delay' as any]: '430ms' }}
+        >
           <Link
             to="/products"
             className="inline-flex h-12 items-center gap-2 bg-white px-8 text-sm font-bold uppercase tracking-[0.12em] text-black transition-opacity hover:opacity-85"
@@ -438,8 +505,12 @@ const HomePage: React.FC = () => {
           </div>
 
           <div className="grid gap-4 lg:grid-cols-3">
-            {shopByVibeProducts.map((vibe) => (
-              <div key={vibe.label} className="overflow-hidden border border-earth-200 bg-white">
+            {shopByVibeProducts.map((vibe, index) => (
+              <div
+                key={vibe.label}
+                ref={(el) => registerReveal(el, index * 90)}
+                className="hover-card-float overflow-hidden border border-earth-200 bg-white"
+              >
                 <div className={`bg-gradient-to-br ${vibe.accent} p-6`}>
                   <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-earth-500">{vibe.label}</p>
                   <h3 className="mt-3 text-2xl font-black uppercase leading-tight tracking-tight text-earth-900">{vibe.title}</h3>
@@ -450,7 +521,7 @@ const HomePage: React.FC = () => {
                     <Link
                       key={product._id || product.id}
                       to={product._id ? `/products/${product._id}` : '/products'}
-                      className="group flex items-center gap-4 border-b border-earth-100 p-4 last:border-b-0 hover:bg-earth-50"
+                      className="group flex items-center gap-4 border-b border-earth-100 p-4 last:border-b-0 transition-colors duration-200 hover:bg-earth-50"
                     >
                       <div className="h-20 w-20 flex-shrink-0 overflow-hidden bg-earth-100">
                         <img
@@ -541,7 +612,8 @@ const HomePage: React.FC = () => {
                   <Link
                     key={slot.live?._id || slot.curated?.id || `curated-${index}`}
                     to={slot.live ? `/products/${slot.live._id}` : '/products'}
-                    className={`group grid overflow-hidden border border-earth-200 bg-earth-50 ${index === 2 ? 'sm:col-span-2 lg:col-span-1 lg:grid-cols-[0.95fr_1.05fr]' : 'grid-rows-[1fr_auto]'}`}
+                    ref={(el) => registerReveal(el, (index + 1) * 110)}
+                    className={`group hover-card-float grid overflow-hidden border border-earth-200 bg-earth-50 ${index === 2 ? 'sm:col-span-2 lg:col-span-1 lg:grid-cols-[0.95fr_1.05fr]' : 'grid-rows-[1fr_auto]'}`}
                   >
                     <div className={`overflow-hidden ${index === 2 ? 'min-h-[240px]' : 'aspect-[4/5]'}`}>
                       <img
@@ -744,11 +816,12 @@ const HomePage: React.FC = () => {
               </div>
             ) : recentPreviewProducts.length > 0 ? (
               <div className="relative grid grid-cols-2 gap-4 sm:grid-cols-3">
-                {recentPreviewProducts.map((p) => (
+                {recentPreviewProducts.map((p, index) => (
                   <Link
                     key={p._id}
                     to={`/products/${p._id}`}
-                    className="group block"
+                    ref={(el) => registerReveal(el, index * 70)}
+                    className="group hover-card-float block"
                   >
                     <div className="relative aspect-square overflow-hidden bg-earth-200">
                       <img
@@ -819,8 +892,13 @@ const HomePage: React.FC = () => {
 
           <div className="overflow-x-auto pb-2">
             <div className="flex min-w-max gap-4">
-              {newThisWeekItems.map((product: any) => (
-                <Link key={product._id} to={product.isCurated ? '/products' : `/products/${product._id}`} className="group w-[260px] border border-earth-200 bg-earth-50">
+              {newThisWeekItems.map((product: any, index) => (
+                <Link
+                  key={product._id}
+                  to={product.isCurated ? '/products' : `/products/${product._id}`}
+                  ref={(el) => registerReveal(el, index * 70)}
+                  className="group hover-card-float w-[260px] border border-earth-200 bg-earth-50"
+                >
                   <div className="relative aspect-[4/5] overflow-hidden bg-earth-100">
                     <img
                           loading="lazy"
@@ -861,8 +939,12 @@ const HomePage: React.FC = () => {
               Built for campus deals that still feel safe.
             </h2>
             <div className="mt-8 space-y-4">
-              {TRUST_PILLARS.map((pillar) => (
-                <div key={pillar.title} className="border border-white/10 bg-white/[0.03] p-4">
+              {TRUST_PILLARS.map((pillar, index) => (
+                <div
+                  key={pillar.title}
+                  ref={(el) => registerReveal(el, index * 110)}
+                  className="hover-card-breath border border-white/10 bg-white/[0.03] p-4"
+                >
                   <div className="flex items-center gap-2 text-white/70">
                     {pillar.icon}
                     <p className="text-xs font-bold uppercase tracking-[0.2em]">{pillar.title}</p>

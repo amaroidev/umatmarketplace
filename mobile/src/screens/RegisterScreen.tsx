@@ -14,9 +14,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as WebBrowser from 'expo-web-browser';
-import * as Google from 'expo-auth-session/providers/google';
-import { getRedirectUrl, makeRedirectUri } from 'expo-auth-session';
-import Constants from 'expo-constants';
+import * as Linking from 'expo-linking';
+import { makeRedirectUri } from 'expo-auth-session';
 import { useAuth } from '../context/AuthContext';
 import AppAlert from '../components/AppAlert';
 import { colors } from '../theme';
@@ -24,17 +23,34 @@ import { supabase } from '../services/supabase';
 
 WebBrowser.maybeCompleteAuthSession();
 
-const GOOGLE_WEB_CLIENT_ID = '904520092449-gnrmhr6h0ltvf74uqdh0s3pcflalljji.apps.googleusercontent.com';
-const GOOGLE_EXPO_CLIENT_ID = '904520092449-ph2so1ap5n2pgpqahclig9gmvar4k51m.apps.googleusercontent.com';
-const GOOGLE_IOS_CLIENT_ID = '335270104690-675e2r90uuv9ftplbofkmbndmbs1mngk.apps.googleusercontent.com';
-const isExpoGo = Constants.appOwnership === 'expo';
-
-const getExpoRedirectUri = () => {
+const extractOAuthParams = (redirectUrl: string) => {
+  const result: Record<string, string> = {};
   try {
-    return getRedirectUrl('redirect');
+    const url = new URL(redirectUrl);
+    const query = new URLSearchParams(url.search);
+    query.forEach((value, key) => {
+      result[key] = value;
+    });
+
+    const hash = url.hash.startsWith('#') ? url.hash.slice(1) : url.hash;
+    const fragment = new URLSearchParams(hash);
+    fragment.forEach((value, key) => {
+      result[key] = value;
+    });
   } catch {
-    return makeRedirectUri({ path: 'redirect' });
+    const [, queryPart = ''] = redirectUrl.split('?');
+    const [queryOnly = '', hashPart = ''] = queryPart.split('#');
+    const query = new URLSearchParams(queryOnly);
+    query.forEach((value, key) => {
+      result[key] = value;
+    });
+    const fragment = new URLSearchParams(hashPart);
+    fragment.forEach((value, key) => {
+      result[key] = value;
+    });
   }
+
+  return result;
 };
 
 const RegisterScreen = ({ navigation }: any) => {
@@ -54,60 +70,6 @@ const RegisterScreen = ({ navigation }: any) => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [alertState, setAlertState] = useState<{ visible: boolean; title: string; message: string }>({ visible: false, title: '', message: '' });
-
-  const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
-    clientId: isExpoGo ? GOOGLE_WEB_CLIENT_ID : GOOGLE_EXPO_CLIENT_ID,
-    ...(isExpoGo ? {} : { iosClientId: GOOGLE_IOS_CLIENT_ID }),
-    webClientId: GOOGLE_WEB_CLIENT_ID,
-    selectAccount: true,
-    redirectUri: isExpoGo ? getExpoRedirectUri() : undefined,
-  });
-
-  React.useEffect(() => {
-    const runGoogle = async () => {
-      if (response?.type === 'error') {
-        const message =
-          response.error?.message ||
-          response.params?.error_description ||
-          response.params?.error ||
-          'Google sign-up failed';
-        setAlertState({ visible: true, title: 'Google sign-up failed', message });
-        return;
-      }
-
-      if (response?.type !== 'success') return;
-
-      if (response.params?.error) {
-        const message = response.params.error_description || response.params.error;
-        setAlertState({ visible: true, title: 'Google sign-up failed', message });
-        return;
-      }
-
-      const credential = response.params.id_token;
-      if (!credential || !form.role) return;
-
-      setIsLoading(true);
-      try {
-        const { data: authData, error } = await supabase.auth.signInWithIdToken({
-          provider: 'google',
-          token: credential,
-        });
-
-        const accessToken = authData.session?.access_token;
-        if (error || !accessToken) {
-          throw new Error(error?.message || 'Supabase Google session failed.');
-        }
-
-        await googleLogin(accessToken, form.role);
-      } catch (error: any) {
-        const message = error.response?.data?.message || error.userMessage || error.message || 'Google sign-up failed';
-        setAlertState({ visible: true, title: 'Google sign-up failed', message });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    runGoogle();
-  }, [response]);
 
   const updateForm = (key: string, value: string) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -198,7 +160,76 @@ const RegisterScreen = ({ navigation }: any) => {
       setAlertState({ visible: true, title: 'Choose role first', message: 'Select Buy or Sell before continuing with Google.' });
       return;
     }
-    promptAsync();
+
+    const run = async () => {
+      const selectedRole: 'buyer' | 'seller' = form.role === 'seller' ? 'seller' : 'buyer';
+      setIsLoading(true);
+      try {
+        const redirectTo = makeRedirectUri({ scheme: 'campusmarketplace', path: 'auth/callback' });
+
+        const { data, error } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+            redirectTo,
+            skipBrowserRedirect: true,
+            queryParams: { prompt: 'select_account' },
+          },
+        });
+
+        if (error || !data?.url) {
+          throw new Error(error?.message || 'Unable to start Google sign-up.');
+        }
+
+        const authResult = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
+        if (authResult.type !== 'success' || !authResult.url) {
+          if (authResult.type === 'cancel') return;
+          throw new Error('Google sign-up did not complete.');
+        }
+
+        const parsed = Linking.parse(authResult.url);
+        const params = {
+          ...extractOAuthParams(authResult.url),
+          ...(parsed.queryParams as Record<string, string | undefined> | undefined),
+        };
+
+        const code = typeof params.code === 'string' ? params.code : undefined;
+        let accessToken: string | undefined;
+
+        if (code) {
+          const { data: exchangeData, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+          accessToken = exchangeData.session?.access_token;
+          if (exchangeError || !accessToken) {
+            throw new Error(exchangeError?.message || 'Supabase Google session failed.');
+          }
+        } else {
+          const oauthAccessToken = typeof params.access_token === 'string' ? params.access_token : undefined;
+          const oauthRefreshToken = typeof params.refresh_token === 'string' ? params.refresh_token : undefined;
+
+          if (!oauthAccessToken || !oauthRefreshToken) {
+            throw new Error('Missing OAuth code/tokens from Google redirect.');
+          }
+
+          const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
+            access_token: oauthAccessToken,
+            refresh_token: oauthRefreshToken,
+          });
+
+          accessToken = sessionData.session?.access_token;
+          if (sessionError || !accessToken) {
+            throw new Error(sessionError?.message || 'Supabase session setup failed.');
+          }
+        }
+
+        await googleLogin(accessToken, selectedRole);
+      } catch (error: any) {
+        const message = error.response?.data?.message || error.userMessage || error.message || 'Google sign-up failed';
+        setAlertState({ visible: true, title: 'Google sign-up failed', message });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    run();
   };
 
   return (
@@ -246,7 +277,7 @@ const RegisterScreen = ({ navigation }: any) => {
                     <View style={styles.divider} />
                   </View>
 
-                  <Pressable onPress={handleGooglePress} disabled={isLoading || !request} style={({ pressed }) => [styles.googleBtn, pressed && { opacity: 0.85 }, (!isRoleChosen || !request || isLoading) && { opacity: 0.45 }]}>
+                  <Pressable onPress={handleGooglePress} disabled={isLoading || !isRoleChosen} style={({ pressed }) => [styles.googleBtn, pressed && { opacity: 0.85 }, (!isRoleChosen || isLoading) && { opacity: 0.45 }]}> 
                     {isLoading ? <ActivityIndicator color={colors.text} /> : <Text style={styles.googleBtnText}>Continue with Google</Text>}
                   </Pressable>
                 </>

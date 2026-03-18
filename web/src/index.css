@@ -121,12 +121,103 @@
   }
 }
 
+@keyframes card-drop-in {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes card-float {
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes hero-rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .animate-role-shake {
   animation: role-shake 320ms ease-in-out;
 }
 
 .animate-fade-up-in {
   animation: fade-up-in 420ms ease-out both;
+}
+
+.animate-card-drop {
+  animation: card-drop-in 560ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation-delay: var(--reveal-delay, 0ms);
+}
+
+.reveal-on-scroll {
+  opacity: 0;
+  transform: translateY(24px) scale(0.985);
+  will-change: transform, opacity;
+}
+
+.reveal-on-scroll.is-visible {
+  animation: card-drop-in 560ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation-delay: var(--reveal-delay, 0ms);
+}
+
+.hero-reveal {
+  opacity: 0;
+  animation: hero-rise-in 720ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
+  animation-delay: var(--hero-delay, 0ms);
+}
+
+.hover-card-float {
+  transition: transform 260ms ease, box-shadow 260ms ease;
+}
+
+.hover-card-float:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 14px 34px rgba(19, 17, 13, 0.12);
+}
+
+.hover-card-breath:hover {
+  animation: card-float 2.6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-role-shake,
+  .animate-fade-up-in,
+  .animate-card-drop,
+  .hero-reveal,
+  .hover-card-breath:hover {
+    animation: none !important;
+  }
+
+  .reveal-on-scroll,
+  .reveal-on-scroll.is-visible,
+  .hero-reveal {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  .hover-card-float,
+  .hover-card-float:hover {
+    transition: none !important;
+    transform: none !important;
+    box-shadow: none !important;
+  }
 }
 
 /* Dark mode */

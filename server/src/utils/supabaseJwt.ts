@@ -11,21 +11,28 @@ export interface SupabaseJwtPayload {
 }
 
 export const verifySupabaseToken = async (token: string): Promise<SupabaseJwtPayload> => {
-  const issuer = process.env.SUPABASE_URL;
-  if (!issuer) {
+  const supabaseUrl = process.env.SUPABASE_URL;
+  if (!supabaseUrl) {
     throw ApiError.badRequest('SUPABASE_URL is not configured on server.');
   }
 
-  const jwks = createRemoteJWKSet(new URL(`${issuer}/auth/v1/.well-known/jwks.json`));
+  const baseUrl = supabaseUrl.replace(/\/$/, '');
+  const authIssuer = `${baseUrl}/auth/v1`;
+  const allowedIssuers = [authIssuer, baseUrl];
+  const jwks = createRemoteJWKSet(new URL(`${authIssuer}/.well-known/jwks.json`));
 
-  try {
-    const { payload } = await jwtVerify(token, jwks, {
-      issuer,
-      audience: 'authenticated',
-    });
+  for (const issuer of allowedIssuers) {
+    try {
+      const { payload } = await jwtVerify(token, jwks, {
+        issuer,
+        audience: 'authenticated',
+      });
 
-    return payload as SupabaseJwtPayload;
-  } catch {
-    throw ApiError.unauthorized('Invalid Supabase token.');
+      return payload as SupabaseJwtPayload;
+    } catch {
+      // Try the next accepted issuer variant.
+    }
   }
+
+  throw ApiError.unauthorized('Invalid Supabase token.');
 };
