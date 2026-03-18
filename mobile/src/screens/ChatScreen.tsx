@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import chatService, { Message } from '../services/chat.service';
 import { useAuth } from '../context/AuthContext';
+import { colors } from '../theme';
 
 const formatTime = (dateStr: string) =>
   new Date(dateStr).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -23,6 +24,8 @@ const ChatScreen = ({ route, navigation }: any) => {
   const [loading, setLoading] = useState(true);
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
+  const [offerAmount, setOfferAmount] = useState('');
+  const [quickReplyMode, setQuickReplyMode] = useState(false);
   const flatListRef = useRef<FlatList>(null);
 
   const fetchMessages = useCallback(async () => {
@@ -58,6 +61,37 @@ const ChatScreen = ({ route, navigation }: any) => {
         setMessages((prev) => [...prev, res.data.message]);
         setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
       }
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const sendQuickReply = async (label: string) => {
+    if (sending) return;
+    setSending(true);
+    try {
+      const res = await chatService.sendMessage(conversationId, label, 'text', { quickReplyLabel: label });
+      if (res.success) {
+        setMessages((prev) => [...prev, res.data.message]);
+      }
+    } finally {
+      setSending(false);
+      setQuickReplyMode(false);
+    }
+  };
+
+  const sendOffer = async () => {
+    const amount = Number(offerAmount);
+    if (!Number.isFinite(amount) || amount <= 0 || sending) return;
+    setSending(true);
+    try {
+      const res = await chatService.sendMessage(conversationId, `Offer: GHS ${amount.toFixed(2)}`, 'text', {
+        offer: { amount, status: 'pending' },
+      });
+      if (res.success) {
+        setMessages((prev) => [...prev, res.data.message]);
+      }
+      setOfferAmount('');
     } finally {
       setSending(false);
     }
@@ -111,10 +145,37 @@ const ChatScreen = ({ route, navigation }: any) => {
         />
       )}
 
-      <View style={styles.inputRow}>
-        <TextInput
-          style={styles.input}
-          placeholder="Type a message..."
+        <View style={styles.inputRow}>
+          {quickReplyMode && (
+            <View style={styles.quickReplyRow}>
+              {['Available now', 'Can negotiate', 'Meet at main gate'].map((q) => (
+                <TouchableOpacity key={q} style={styles.quickChip} onPress={() => sendQuickReply(q)}>
+                  <Text style={styles.quickChipText}>{q}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+
+          <View style={styles.offerRow}>
+            <TextInput
+              style={styles.offerInput}
+              placeholder="Offer (GHS)"
+              placeholderTextColor="#9a8e7f"
+              value={offerAmount}
+              onChangeText={setOfferAmount}
+              keyboardType="numeric"
+            />
+            <TouchableOpacity style={styles.offerBtn} onPress={sendOffer}>
+              <Text style={styles.offerBtnText}>Send Offer</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.quickToggle} onPress={() => setQuickReplyMode((s) => !s)}>
+              <Text style={styles.quickToggleText}>Quick</Text>
+            </TouchableOpacity>
+          </View>
+
+          <TextInput
+            style={styles.input}
+            placeholder="Type a message..."
           value={text}
           onChangeText={setText}
           multiline
@@ -138,39 +199,39 @@ const ChatScreen = ({ route, navigation }: any) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f9fafb' },
+  container: { flex: 1, backgroundColor: colors.bg },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   productBanner: {
-    backgroundColor: '#eff6ff',
+    backgroundColor: '#f1ebdf',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#bfdbfe',
+    borderBottomColor: colors.border,
   },
-  productBannerText: { fontSize: 12, color: '#1d4ed8', fontWeight: '500' },
+  productBannerText: { fontSize: 11, color: '#6e6253', fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1.1 },
   messagesList: { paddingHorizontal: 12, paddingVertical: 16, gap: 8 },
   bubble: {
     maxWidth: '78%',
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: 16,
+    borderRadius: 0,
     marginBottom: 4,
   },
   bubbleMe: {
     alignSelf: 'flex-end',
-    backgroundColor: '#2563eb',
+    backgroundColor: '#1f1a14',
     borderBottomRightRadius: 4,
   },
   bubbleThem: {
     alignSelf: 'flex-start',
-    backgroundColor: '#fff',
+    backgroundColor: '#fffdf8',
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: colors.border,
     borderBottomLeftRadius: 4,
   },
   bubbleText: { fontSize: 14, lineHeight: 20 },
   bubbleTextMe: { color: '#fff' },
-  bubbleTextThem: { color: '#111827' },
+  bubbleTextThem: { color: '#221d16' },
   bubbleTime: { fontSize: 10, marginTop: 4 },
   bubbleTimeMe: { color: 'rgba(255,255,255,0.65)', textAlign: 'right' },
   bubbleTimeThem: { color: '#9ca3af', textAlign: 'left' },
@@ -181,14 +242,25 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     paddingBottom: 24,
-    backgroundColor: '#fff',
+    backgroundColor: '#fffdf8',
     borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
+    borderTopColor: colors.border,
     gap: 8,
   },
+  quickReplyRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 8 },
+  quickChip: { borderWidth: 1, borderColor: colors.border, paddingHorizontal: 8, paddingVertical: 6, backgroundColor: '#fff' },
+  quickChipText: { fontSize: 10, fontWeight: '800', color: '#6f6559', textTransform: 'uppercase', letterSpacing: 1 },
+  offerRow: { flexDirection: 'row', gap: 6, marginBottom: 8 },
+  offerInput: { flex: 1, borderWidth: 1, borderColor: colors.border, backgroundColor: '#fff', paddingHorizontal: 10, paddingVertical: 8, fontSize: 12 },
+  offerBtn: { backgroundColor: '#1f1a14', justifyContent: 'center', paddingHorizontal: 10 },
+  offerBtnText: { color: '#fff', fontSize: 10, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 },
+  quickToggle: { borderWidth: 1, borderColor: colors.border, justifyContent: 'center', paddingHorizontal: 10, backgroundColor: '#fff' },
+  quickToggleText: { color: '#5e5447', fontSize: 10, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 },
   input: {
     flex: 1,
-    backgroundColor: '#f3f4f6',
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: colors.border,
     borderRadius: 20,
     paddingHorizontal: 14,
     paddingVertical: 10,
@@ -196,15 +268,15 @@ const styles = StyleSheet.create({
     maxHeight: 100,
   },
   sendBtn: {
-    backgroundColor: '#2563eb',
+    backgroundColor: '#1f1a14',
     borderRadius: 20,
     paddingHorizontal: 18,
     paddingVertical: 10,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  sendBtnDisabled: { backgroundColor: '#93c5fd' },
-  sendBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
+  sendBtnDisabled: { backgroundColor: '#8f8478' },
+  sendBtnText: { color: '#fff', fontWeight: '800', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1 },
 });
 
 export default ChatScreen;

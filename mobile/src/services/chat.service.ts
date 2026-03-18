@@ -31,6 +31,12 @@ export interface Message {
   sender: ConversationParticipant;
   content: string;
   type: 'text' | 'image' | 'system';
+  offer?: {
+    amount: number;
+    status: 'pending' | 'accepted' | 'rejected' | 'countered';
+  };
+  quickReplyLabel?: string;
+  attachments?: { url: string; mimeType?: string; name?: string }[];
   isRead: boolean;
   createdAt: string;
 }
@@ -66,11 +72,17 @@ const chatService = {
   sendMessage: async (
     conversationId: string,
     content: string,
-    type: 'text' | 'image' = 'text'
+    type: 'text' | 'image' = 'text',
+    extra?: {
+      offer?: { amount: number; status: 'pending' | 'accepted' | 'rejected' | 'countered' };
+      quickReplyLabel?: string;
+      attachments?: { url: string; mimeType?: string; name?: string }[];
+    }
   ): Promise<{ success: boolean; data: { message: Message } }> => {
     const response = await api.post(`/conversations/${conversationId}/messages`, {
       content,
       type,
+      ...extra,
     });
     return response.data;
   },

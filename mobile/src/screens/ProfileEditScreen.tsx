@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -13,6 +12,8 @@ import {
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
+import { colors } from '../theme';
+import AppAlert from '../components/AppAlert';
 
 const ProfileEditScreen = ({ navigation }: any) => {
   const { user, refreshUser } = useAuth();
@@ -20,9 +21,13 @@ const ProfileEditScreen = ({ navigation }: any) => {
   const [phone, setPhone] = useState(user?.phone ?? '');
   const [location, setLocation] = useState(user?.location ?? '');
   const [loading, setLoading] = useState(false);
+  const [alertState, setAlertState] = useState<{ visible: boolean; title: string; message: string }>({ visible: false, title: '', message: '' });
 
   const handleSave = async () => {
-    if (!name.trim()) return Alert.alert('Required', 'Name cannot be empty.');
+    if (!name.trim()) {
+      setAlertState({ visible: true, title: 'Required', message: 'Name cannot be empty.' });
+      return;
+    }
     setLoading(true);
     try {
       const res = await api.put('/auth/profile', {
@@ -32,13 +37,12 @@ const ProfileEditScreen = ({ navigation }: any) => {
       });
       if (res.data.success) {
         await refreshUser();
-        Alert.alert('Saved', 'Profile updated successfully.', [
-          { text: 'OK', onPress: () => navigation.goBack() },
-        ]);
+        setAlertState({ visible: true, title: 'Saved', message: 'Profile updated successfully.' });
+        setTimeout(() => navigation.goBack(), 400);
       }
     } catch (err: any) {
       const msg = err?.response?.data?.message ?? 'Failed to update profile.';
-      Alert.alert('Error', msg);
+      setAlertState({ visible: true, title: 'Error', message: msg });
     } finally {
       setLoading(false);
     }
@@ -98,27 +102,33 @@ const ProfileEditScreen = ({ navigation }: any) => {
           )}
         </TouchableOpacity>
       </ScrollView>
+      <AppAlert
+        visible={alertState.visible}
+        title={alertState.title}
+        message={alertState.message}
+        onClose={() => setAlertState({ visible: false, title: '', message: '' })}
+      />
     </KeyboardAvoidingView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f9fafb' },
+  container: { flex: 1, backgroundColor: colors.bg },
   content: { padding: 16, paddingBottom: 40 },
   label: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#374151',
+    color: '#6f6559',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginTop: 18,
     marginBottom: 6,
   },
   input: {
-    backgroundColor: '#fff',
+    backgroundColor: '#fffdf8',
     borderWidth: 1,
-    borderColor: '#e5e7eb',
-    borderRadius: 10,
+    borderColor: colors.border,
+    borderRadius: 0,
     paddingHorizontal: 12,
     paddingVertical: 11,
     fontSize: 15,
@@ -130,20 +140,19 @@ const styles = StyleSheet.create({
     color: '#111827',
     paddingVertical: 11,
     paddingHorizontal: 12,
-    backgroundColor: '#f3f4f6',
-    borderRadius: 10,
+    backgroundColor: '#f1ebdf',
+    borderRadius: 0,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: colors.border,
   },
   readonlyNote: { marginTop: 4, fontSize: 11, color: '#9ca3af' },
   saveBtn: {
     marginTop: 28,
-    backgroundColor: '#111827',
+    backgroundColor: '#1f1a14',
     paddingVertical: 14,
-    borderRadius: 12,
     alignItems: 'center',
   },
-  saveBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  saveBtnText: { color: '#fff', fontSize: 12, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1.3 },
 });
 
 export default ProfileEditScreen;

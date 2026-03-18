@@ -11,7 +11,9 @@
       "resizeMode": "contain",
       "backgroundColor": "#2563eb"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.campusmarketplace.app"
@@ -28,10 +30,15 @@
       "favicon": "./assets/favicon.png"
     },
     "extra": {
-      "apiUrl": "https://your-api-domain.com/api",
+      "apiUrl": "http://143.105.209.181:5000/api",
+      "socketUrl": "http://143.105.209.181:5000",
       "eas": {
         "projectId": "your-eas-project-id"
       }
-    }
+    },
+    "plugins": [
+      "expo-secure-store",
+      "expo-web-browser"
+    ]
   }
 }

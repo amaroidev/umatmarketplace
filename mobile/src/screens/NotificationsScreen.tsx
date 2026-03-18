@@ -9,6 +9,7 @@ import {
   View,
 } from 'react-native';
 import notificationService, { Notification } from '../services/notification.service';
+import { colors } from '../theme';
 
 const TYPE_ICONS: Record<string, string> = {
   order_placed: '🛒',
@@ -163,25 +164,25 @@ const NotificationsScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: colors.bg },
   header: {
     paddingTop: 56,
     paddingBottom: 12,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
-    backgroundColor: '#fff',
+    borderBottomColor: colors.border,
+    backgroundColor: '#f4ecdd',
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-end',
   },
-  headerTitle: { fontSize: 24, fontWeight: '800', color: '#111827' },
+  headerTitle: { fontSize: 26, fontWeight: '900', color: '#1f1a14', textTransform: 'uppercase' },
   unreadLabel: { fontSize: 12, color: '#6b7280', marginTop: 2 },
   markAllBtn: { paddingBottom: 2 },
-  markAllText: { fontSize: 13, color: '#2563eb', fontWeight: '600' },
-  pushTestWrap: { paddingHorizontal: 16, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
-  pushTestBtn: { borderWidth: 1, borderColor: '#d1d5db', paddingVertical: 11, alignItems: 'center', borderRadius: 10 },
-  pushTestBtnText: { fontSize: 12, fontWeight: '700', color: '#374151', textTransform: 'uppercase', letterSpacing: 0.8 },
+  markAllText: { fontSize: 11, color: '#2f5d4f', fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 },
+  pushTestWrap: { paddingHorizontal: 16, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.border, backgroundColor: '#fffdf8' },
+  pushTestBtn: { borderWidth: 1, borderColor: colors.border, paddingVertical: 11, alignItems: 'center' },
+  pushTestBtnText: { fontSize: 11, fontWeight: '800', color: '#463d31', textTransform: 'uppercase', letterSpacing: 1.2 },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   row: {
     flexDirection: 'row',
@@ -189,12 +190,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
   },
-  rowUnread: { backgroundColor: '#eff6ff' },
+  rowUnread: { backgroundColor: '#f5efe5' },
   iconWrap: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#f3f4f6',
+    backgroundColor: '#ece3d2',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -211,7 +212,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#2563eb',
+    backgroundColor: '#2f5d4f',
     marginLeft: 8,
     marginTop: 6,
     flexShrink: 0,

@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import orderService, { Order } from '../services/order.service';
 import { useAuth } from '../context/AuthContext';
+import { colors } from '../theme';
 
 const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
   pending: { bg: '#fef3c7', text: '#92400e' },
@@ -149,21 +150,21 @@ const OrdersScreen = ({ navigation }: any) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f9fafb' },
+  container: { flex: 1, backgroundColor: colors.bg },
   header: {
     paddingTop: 56,
     paddingBottom: 12,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
-    backgroundColor: '#fff',
+    borderBottomColor: colors.border,
+    backgroundColor: '#f4ecdd',
   },
-  headerTitle: { fontSize: 24, fontWeight: '800', color: '#111827' },
+  headerTitle: { fontSize: 26, fontWeight: '900', color: '#1f1a14', textTransform: 'uppercase' },
   tabs: {
     flexDirection: 'row',
-    backgroundColor: '#fff',
+    backgroundColor: '#fffdf8',
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    borderBottomColor: colors.border,
   },
   tab: {
     flex: 1,
@@ -172,16 +173,16 @@ const styles = StyleSheet.create({
     borderBottomWidth: 2,
     borderBottomColor: 'transparent',
   },
-  tabActive: { borderBottomColor: '#2563eb' },
-  tabText: { fontSize: 14, fontWeight: '500', color: '#6b7280' },
-  tabTextActive: { color: '#2563eb', fontWeight: '700' },
+  tabActive: { borderBottomColor: '#1f1a14' },
+  tabText: { fontSize: 11, fontWeight: '800', color: '#7b6f61', textTransform: 'uppercase', letterSpacing: 1.1 },
+  tabTextActive: { color: '#1f1a14', fontWeight: '900' },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   list: { padding: 12, gap: 10 },
   card: {
-    backgroundColor: '#fff',
+    backgroundColor: '#fffdf8',
     borderWidth: 1,
-    borderColor: '#e5e7eb',
-    borderRadius: 12,
+    borderColor: colors.border,
+    borderRadius: 0,
     padding: 14,
   },
   cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
@@ -195,7 +196,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 8,
   },
-  amount: { fontSize: 16, fontWeight: '700', color: '#111827' },
+  amount: { fontSize: 16, fontWeight: '800', color: '#2f5d4f' },
   date: { fontSize: 12, color: '#9ca3af' },
   party: { marginTop: 6, fontSize: 12, color: '#6b7280' },
   emptyWrap: { padding: 40, alignItems: 'center' },

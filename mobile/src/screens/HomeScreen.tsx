@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -10,10 +10,12 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Animated,
 } from 'react-native';
 import productService from '../services/product.service';
 import { Product } from '../types';
 import { useAuth } from '../context/AuthContext';
+import { colors } from '../theme';
 
 const formatPrice = (n: number) =>
   `GHS ${n.toLocaleString('en-GH', { minimumFractionDigits: 2 })}`;
@@ -57,6 +59,7 @@ const HomeScreen = ({ navigation }: any) => {
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
 
   const fetchData = useCallback(async (withLoader = true) => {
     if (withLoader) setLoading(true);
@@ -76,6 +79,14 @@ const HomeScreen = ({ navigation }: any) => {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  useEffect(() => {
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 420,
+      useNativeDriver: true,
+    }).start();
+  }, []);
 
   const handleSearch = () => {
     navigation.navigate('ProductsTab', { screen: 'ProductsHome', params: { search } });
@@ -102,7 +113,7 @@ const HomeScreen = ({ navigation }: any) => {
       }
     >
       {/* Hero / Search */}
-      <View style={styles.hero}>
+      <Animated.View style={[styles.hero, { opacity: fadeAnim }]}> 
         <Text style={styles.heroGreeting}>
           {user ? `Hey, ${user.name.split(' ')[0]} 👋` : 'UMaT Marketplace'}
         </Text>
@@ -124,7 +135,7 @@ const HomeScreen = ({ navigation }: any) => {
         <TouchableOpacity style={styles.secondaryHeroBtn} onPress={openBrowse}>
           <Text style={styles.secondaryHeroBtnText}>Browse all listings</Text>
         </TouchableOpacity>
-      </View>
+      </Animated.View>
 
       {/* Featured */}
       {featured.length > 0 && (
@@ -180,11 +191,11 @@ const HomeScreen = ({ navigation }: any) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f9fafb' },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f9fafb' },
+  container: { flex: 1, backgroundColor: colors.bg },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.bg },
   // Hero
   hero: {
-    backgroundColor: '#111827',
+    backgroundColor: '#1f1a14',
     paddingTop: 60,
     paddingBottom: 28,
     paddingHorizontal: 20,
@@ -194,33 +205,34 @@ const styles = StyleSheet.create({
   searchRow: { flexDirection: 'row', gap: 8 },
   searchInput: {
     flex: 1,
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.18)',
+    borderRadius: 0,
     paddingHorizontal: 14,
     paddingVertical: 11,
     fontSize: 14,
     color: '#fff',
   },
   searchBtn: {
-    backgroundColor: '#2563eb',
-    borderRadius: 10,
+    backgroundColor: '#c57f3f',
     paddingHorizontal: 18,
     justifyContent: 'center',
   },
-  searchBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
-  secondaryHeroBtn: { marginTop: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.16)', paddingVertical: 12, alignItems: 'center' },
+  searchBtnText: { color: '#fff', fontWeight: '800', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1.2 },
+  secondaryHeroBtn: { marginTop: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.16)', paddingVertical: 12, alignItems: 'center', borderRadius: 0 },
   secondaryHeroBtnText: { color: 'rgba(255,255,255,0.72)', fontSize: 12, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1 },
   // Sections
   section: { paddingTop: 24, paddingBottom: 8 },
   sectionHeader: { paddingHorizontal: 16, marginBottom: 12 },
-  sectionLabel: { fontSize: 10, fontWeight: '700', color: '#9ca3af', letterSpacing: 1.5 },
-  sectionTitle: { fontSize: 18, fontWeight: '800', color: '#111827', marginTop: 2 },
+  sectionLabel: { fontSize: 10, fontWeight: '800', color: '#7c6f60', letterSpacing: 1.8, textTransform: 'uppercase' },
+  sectionTitle: { fontSize: 22, fontWeight: '900', color: '#1f1a14', marginTop: 2, textTransform: 'uppercase' },
   // Featured horizontal scroll
   hScroll: { paddingHorizontal: 16, gap: 12 },
   featuredCard: {
     width: 200,
     height: 150,
-    borderRadius: 12,
+    borderRadius: 0,
     overflow: 'hidden',
     backgroundColor: '#e5e7eb',
   },
@@ -236,11 +248,11 @@ const styles = StyleSheet.create({
   grid: { paddingHorizontal: 12, gap: 10, marginBottom: 10 },
   card: {
     flex: 1,
-    backgroundColor: '#fff',
-    borderRadius: 12,
+    backgroundColor: '#fffdf8',
+    borderRadius: 0,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: colors.border,
   },
   cardImage: { width: '100%', height: 120, backgroundColor: '#e5e7eb' },
   featuredBadge: {
@@ -255,9 +267,9 @@ const styles = StyleSheet.create({
   featuredBadgeText: { fontSize: 9, fontWeight: '800', color: '#fff', letterSpacing: 0.5 },
   cardBody: { padding: 8 },
   cardTitle: { fontSize: 13, fontWeight: '600', color: '#111827' },
-  cardPrice: { marginTop: 4, fontSize: 14, fontWeight: '700', color: '#2563eb' },
-  cardMeta: { marginTop: 2, fontSize: 11, color: '#9ca3af' },
-  emptyText: { textAlign: 'center', color: '#9ca3af', padding: 24 },
+  cardPrice: { marginTop: 4, fontSize: 14, fontWeight: '800', color: '#2f5d4f' },
+  cardMeta: { marginTop: 2, fontSize: 10, color: '#9a8e7f', textTransform: 'uppercase', letterSpacing: 0.9 },
+  emptyText: { textAlign: 'center', color: '#8f8478', padding: 24, textTransform: 'uppercase', letterSpacing: 1.1, fontWeight: '700', fontSize: 11 },
 });
 
 export default HomeScreen;

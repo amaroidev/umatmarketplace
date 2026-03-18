@@ -10,7 +10,7 @@ interface AuthContextType {
   isLoading: boolean;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
-  googleLogin: (credential: string, role?: 'buyer' | 'seller') => Promise<void>;
+  googleLogin: (credential: string, role?: 'buyer' | 'seller') => Promise<{ isNewUser?: boolean; needsProfileCompletion?: boolean }>;
   register: (data: RegisterPayload) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
@@ -55,7 +55,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await syncPushSubscription();
   }, []);
 
-  const googleLogin = useCallback(async (credential: string, role: 'buyer' | 'seller' = 'buyer') => {
+  const googleLogin = useCallback(async (credential: string, role?: 'buyer' | 'seller') => {
     const response = await authService.googleLogin(credential, role);
     const { user: newUser, token: newToken } = response.data;
     await SecureStore.setItemAsync('token', newToken);
@@ -63,6 +63,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setToken(newToken);
     setUser(newUser);
     await syncPushSubscription();
+    return {
+      isNewUser: !!response.data?.isNewUser,
+      needsProfileCompletion: !!response.data?.needsProfileCompletion,
+    };
   }, []);
 
   const register = useCallback(async (data: RegisterPayload) => {

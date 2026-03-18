@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 import productService from '../services/product.service';
+import { colors } from '../theme';
 
 const SellerAnalyticsScreen = () => {
   const [stats, setStats] = useState<{
@@ -22,7 +23,7 @@ const SellerAnalyticsScreen = () => {
   if (loading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#2563eb" />
+        <ActivityIndicator size="large" color={colors.accent} />
       </View>
     );
   }
@@ -57,16 +58,16 @@ const SellerAnalyticsScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f9fafb' },
+  container: { flex: 1, backgroundColor: colors.bg },
   content: { padding: 16, paddingBottom: 32 },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f9fafb' },
-  eyebrow: { fontSize: 10, fontWeight: '700', letterSpacing: 1.4, color: '#9ca3af', marginTop: 8 },
-  title: { fontSize: 28, fontWeight: '800', color: '#111827', marginTop: 6, marginBottom: 18 },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.bg },
+  eyebrow: { fontSize: 10, fontWeight: '800', letterSpacing: 1.8, color: '#7c6f60', marginTop: 8, textTransform: 'uppercase' },
+  title: { fontSize: 28, fontWeight: '900', color: '#1f1a14', marginTop: 6, marginBottom: 18, textTransform: 'uppercase' },
   grid: { gap: 12 },
-  card: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#e5e7eb', padding: 18, borderRadius: 14 },
+  card: { backgroundColor: '#fffdf8', borderWidth: 1, borderColor: colors.border, padding: 18, borderRadius: 0 },
   cardLabel: { fontSize: 12, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 1 },
   cardValue: { fontSize: 24, fontWeight: '800', color: '#111827', marginTop: 6 },
-  noteCard: { marginTop: 16, backgroundColor: '#111827', padding: 18, borderRadius: 14 },
+  noteCard: { marginTop: 16, backgroundColor: '#1f1a14', padding: 18, borderRadius: 0 },
   noteTitle: { color: '#fff', fontSize: 16, fontWeight: '700' },
   noteText: { color: 'rgba(255,255,255,0.68)', fontSize: 13, lineHeight: 20, marginTop: 8 },
 });

@@ -12,6 +12,7 @@ import productService from '../services/product.service';
 import savedService from '../services/saved.service';
 import { Product } from '../types';
 import { useAuth } from '../context/AuthContext';
+import { colors } from '../theme';
 
 const ProductDetailScreen = ({ route }: any) => {
   const { productId } = route.params;
@@ -54,7 +55,7 @@ const ProductDetailScreen = ({ route }: any) => {
   };
 
   if (loading || !product) {
-    return <View style={styles.centered}><ActivityIndicator size="large" color="#2563eb" /></View>;
+    return <View style={styles.centered}><ActivityIndicator size="large" color={colors.accent} /></View>;
   }
 
   return (
@@ -74,7 +75,7 @@ const ProductDetailScreen = ({ route }: any) => {
         <Text style={styles.desc}>{product.description}</Text>
 
         <Text style={styles.sectionTitle}>Seller</Text>
-        <Text style={styles.meta}>{product.seller?.name || 'Seller'}</Text>
+        <Text style={styles.meta}>{product.seller?.storeName || product.seller?.brandName || product.seller?.name || 'Seller'}</Text>
         <Text style={styles.meta}>{product.pickupLocation || 'UMaT Campus'}</Text>
 
         {user && user._id !== product.seller?._id && (
@@ -92,33 +93,32 @@ const ProductDetailScreen = ({ route }: any) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: colors.bg },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.bg },
   image: { width: '100%', height: 260, backgroundColor: '#e5e7eb' },
-  content: { padding: 16 },
-  price: { fontSize: 24, fontWeight: '800', color: '#2563eb' },
+  content: { padding: 16, backgroundColor: '#fffdf8', borderTopWidth: 1, borderTopColor: colors.border },
+  price: { fontSize: 24, fontWeight: '800', color: '#2f5d4f' },
   title: { marginTop: 8, fontSize: 20, fontWeight: '700', color: '#111827' },
   badge: {
     marginTop: 8,
     alignSelf: 'flex-start',
-    backgroundColor: '#eef2ff',
-    color: '#3730a3',
+    backgroundColor: '#f2eee6',
+    color: '#6c6052',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 999,
     textTransform: 'capitalize',
   },
-  sectionTitle: { marginTop: 18, fontSize: 16, fontWeight: '700', color: '#111827' },
-  desc: { marginTop: 8, fontSize: 14, lineHeight: 21, color: '#374151' },
-  meta: { marginTop: 6, fontSize: 14, color: '#4b5563' },
+  sectionTitle: { marginTop: 18, fontSize: 12, fontWeight: '800', color: '#6c6052', textTransform: 'uppercase', letterSpacing: 1.2 },
+  desc: { marginTop: 8, fontSize: 14, lineHeight: 21, color: '#2e2820' },
+  meta: { marginTop: 6, fontSize: 13, color: '#51483d' },
   saveBtn: {
     marginTop: 20,
-    backgroundColor: '#2563eb',
+    backgroundColor: '#1f1a14',
     paddingVertical: 12,
-    borderRadius: 10,
     alignItems: 'center',
   },
-  saveBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+  saveBtnText: { color: '#fff', fontSize: 12, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1.3 },
 });
 
 export default ProductDetailScreen;

@@ -21,6 +21,8 @@ interface AuthResponse {
   data: {
     user: User;
     token: string;
+    isNewUser?: boolean;
+    needsProfileCompletion?: boolean;
   };
 }
 

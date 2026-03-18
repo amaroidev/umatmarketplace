@@ -5,28 +5,26 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { ActivityIndicator, Text, View } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 
-// Auth screens
-import LoginScreen from '../screens/LoginScreen';
-import RegisterScreen from '../screens/RegisterScreen';
-
-// Main tab screens
-import HomeScreen from '../screens/HomeScreen';
-import ProductsScreen from '../screens/ProductsScreen';
-import ProductDetailScreen from '../screens/ProductDetailScreen';
-import SavedScreen from '../screens/SavedScreen';
-import ProfileScreen from '../screens/ProfileScreen';
-import OrdersScreen from '../screens/OrdersScreen';
-import ConversationListScreen from '../screens/ConversationListScreen';
-import NotificationsScreen from '../screens/NotificationsScreen';
-
-// Stack-only screens
-import ChatScreen from '../screens/ChatScreen';
-import OrderDetailScreen from '../screens/OrderDetailScreen';
-import CreateListingScreen from '../screens/CreateListingScreen';
-import ProfileEditScreen from '../screens/ProfileEditScreen';
-import SellerAnalyticsScreen from '../screens/SellerAnalyticsScreen';
-import MyListingsScreen from '../screens/MyListingsScreen';
+import {
+  LoginScreen,
+  RegisterScreen,
+  HomeScreen,
+  ProductsScreen,
+  ProductDetailScreen,
+  SavedScreen,
+  ProfileScreen,
+  OrdersScreen,
+  ConversationListScreen,
+  NotificationsScreen,
+  ChatScreen,
+  OrderDetailScreen,
+  CreateListingScreen,
+  ProfileEditScreen,
+  SellerAnalyticsScreen,
+  MyListingsScreen,
+} from '../screens';
 import { navigationRef } from './navigationRef';
+import { colors } from '../theme';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -102,16 +100,27 @@ const ProfileStackScreen = () => (
 // ── Bottom tabs ───────────────────────────────────────────────────────────────
 const tabIcon = (emoji: string) =>
   ({ color }: { color: string }) => (
-    <Text style={{ fontSize: 20, color }}>{emoji}</Text>
+    <Text style={{ fontSize: 18, color }}>{emoji}</Text>
   );
 
 const MainTabs = () => (
   <Tab.Navigator
     screenOptions={{
       headerShown: false,
-      tabBarActiveTintColor: '#2563eb',
-      tabBarInactiveTintColor: '#9ca3af',
-      tabBarStyle: { borderTopColor: '#e5e7eb' },
+      tabBarActiveTintColor: colors.text,
+      tabBarInactiveTintColor: '#9f9382',
+      tabBarStyle: {
+        borderTopColor: colors.border,
+        backgroundColor: '#fffdf8',
+        height: 64,
+        paddingTop: 5,
+      },
+      tabBarLabelStyle: {
+        fontSize: 10,
+        fontWeight: '800',
+        textTransform: 'uppercase',
+        letterSpacing: 1,
+      },
     }}
   >
     <Tab.Screen

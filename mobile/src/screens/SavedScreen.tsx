@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import savedService from '../services/saved.service';
 import { Product } from '../types';
+import { colors } from '../theme';
 
 const SavedScreen = ({ navigation }: any) => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -34,7 +35,7 @@ const SavedScreen = ({ navigation }: any) => {
   }, [navigation]);
 
   if (loading) {
-    return <View style={styles.centered}><ActivityIndicator size="large" color="#2563eb" /></View>;
+    return <View style={styles.centered}><ActivityIndicator size="large" color={colors.accent} /></View>;
   }
 
   return (
@@ -78,21 +79,21 @@ const SavedScreen = ({ navigation }: any) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f9fafb' },
+  container: { flex: 1, backgroundColor: colors.bg },
   listContent: { padding: 12, gap: 10 },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.bg },
   card: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
+    backgroundColor: '#fffdf8',
+    borderRadius: 0,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: colors.border,
   },
   image: { width: '100%', height: 150, backgroundColor: '#e5e7eb' },
   content: { padding: 10 },
   title: { fontSize: 15, fontWeight: '600', color: '#111827' },
-  price: { marginTop: 4, fontSize: 16, fontWeight: '700', color: '#2563eb' },
-  empty: { textAlign: 'center', marginTop: 50, color: '#6b7280' },
+  price: { marginTop: 4, fontSize: 16, fontWeight: '800', color: '#2f5d4f' },
+  empty: { textAlign: 'center', marginTop: 50, color: '#7c6f60', textTransform: 'uppercase', letterSpacing: 1.2, fontWeight: '700', fontSize: 11 },
 });
 
 export default SavedScreen;

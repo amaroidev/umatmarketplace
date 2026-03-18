@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import chatService, { Conversation } from '../services/chat.service';
 import { useAuth } from '../context/AuthContext';
+import { colors } from '../theme';
 
 const formatTime = (dateStr: string) => {
   const d = new Date(dateStr);
@@ -145,22 +146,23 @@ const ConversationListScreen = ({ navigation }: any) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: colors.bg },
   header: {
     paddingTop: 56,
     paddingBottom: 12,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
-    backgroundColor: '#fff',
+    borderBottomColor: colors.border,
+    backgroundColor: '#f4ecdd',
   },
-  headerTitle: { fontSize: 24, fontWeight: '800', color: '#111827' },
+  headerTitle: { fontSize: 26, fontWeight: '900', color: '#1f1a14', textTransform: 'uppercase' },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
+    backgroundColor: '#fffdf8',
   },
   avatarWrap: { marginRight: 12 },
   avatar: { width: 48, height: 48, borderRadius: 24 },
@@ -168,22 +170,22 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#e0e7ff',
+    backgroundColor: '#ece3d2',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  avatarInitial: { fontSize: 20, fontWeight: '700', color: '#3730a3' },
+  avatarInitial: { fontSize: 20, fontWeight: '700', color: '#5b5042' },
   rowContent: { flex: 1 },
   rowTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  name: { fontSize: 15, color: '#374151', flex: 1, marginRight: 8 },
+  name: { fontSize: 14, color: '#3f372d', flex: 1, marginRight: 8, textTransform: 'uppercase', letterSpacing: 0.8, fontWeight: '700' },
   nameBold: { fontWeight: '700', color: '#111827' },
   time: { fontSize: 12, color: '#9ca3af' },
-  productLabel: { fontSize: 11, color: '#6b7280', marginTop: 1 },
+  productLabel: { fontSize: 10, color: '#7c6f60', marginTop: 1, textTransform: 'uppercase', letterSpacing: 1 },
   rowBottom: { flexDirection: 'row', alignItems: 'center', marginTop: 3 },
   lastMsg: { fontSize: 13, color: '#9ca3af', flex: 1 },
   lastMsgBold: { fontWeight: '600', color: '#374151' },
   badge: {
-    backgroundColor: '#2563eb',
+    backgroundColor: '#2f5d4f',
     borderRadius: 10,
     minWidth: 20,
     paddingHorizontal: 5,
@@ -193,7 +195,7 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   badgeText: { color: '#fff', fontSize: 11, fontWeight: '700' },
-  separator: { height: 1, backgroundColor: '#f3f4f6', marginLeft: 76 },
+  separator: { height: 1, backgroundColor: '#efe7d7', marginLeft: 76 },
   emptyWrap: { padding: 40, alignItems: 'center' },
   emptyText: { fontSize: 16, fontWeight: '600', color: '#374151' },
   emptySubtext: { marginTop: 8, fontSize: 13, color: '#9ca3af', textAlign: 'center' },

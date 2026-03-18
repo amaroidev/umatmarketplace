@@ -3,6 +3,7 @@ import { ActivityIndicator, Alert, FlatList, Image, RefreshControl, StyleSheet, 
 import api from '../services/api';
 import productService from '../services/product.service';
 import { Product } from '../types';
+import { colors } from '../theme';
 
 const MyListingsScreen = ({ navigation }: any) => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -43,8 +44,8 @@ const MyListingsScreen = ({ navigation }: any) => {
   }
 
   return (
-    <FlatList
-      style={styles.container}
+      <FlatList
+        style={styles.container}
       contentContainerStyle={styles.content}
       data={products}
       keyExtractor={(item) => item._id}
@@ -77,22 +78,22 @@ const MyListingsScreen = ({ navigation }: any) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f9fafb' },
+  container: { flex: 1, backgroundColor: colors.bg },
   content: { padding: 16, paddingBottom: 32 },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f9fafb' },
-  header: { fontSize: 28, fontWeight: '800', color: '#111827', marginBottom: 16 },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.bg },
+  header: { fontSize: 28, fontWeight: '900', color: '#1f1a14', marginBottom: 16, textTransform: 'uppercase' },
   empty: { textAlign: 'center', color: '#6b7280', marginTop: 40 },
-  card: { flexDirection: 'row', gap: 12, padding: 12, backgroundColor: '#fff', borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 14, marginBottom: 12 },
+  card: { flexDirection: 'row', gap: 12, padding: 12, backgroundColor: '#fffdf8', borderWidth: 1, borderColor: colors.border, borderRadius: 0, marginBottom: 12 },
   image: { width: 88, height: 88, borderRadius: 10, backgroundColor: '#e5e7eb' },
   meta: { flex: 1 },
   title: { fontSize: 15, fontWeight: '700', color: '#111827' },
   price: { marginTop: 6, fontSize: 14, fontWeight: '700', color: '#111827' },
-  status: { marginTop: 4, fontSize: 12, color: '#6b7280' },
+  status: { marginTop: 4, fontSize: 11, color: '#7b6f61', textTransform: 'uppercase', letterSpacing: 0.8 },
   actions: { flexDirection: 'row', gap: 8, marginTop: 12 },
-  primaryBtn: { backgroundColor: '#111827', paddingVertical: 10, paddingHorizontal: 14, borderRadius: 10 },
-  primaryBtnText: { color: '#fff', fontSize: 12, fontWeight: '700' },
-  secondaryBtn: { borderWidth: 1, borderColor: '#d1d5db', paddingVertical: 10, paddingHorizontal: 14, borderRadius: 10 },
-  secondaryBtnText: { color: '#374151', fontSize: 12, fontWeight: '700' },
+  primaryBtn: { backgroundColor: '#1f1a14', paddingVertical: 10, paddingHorizontal: 14 },
+  primaryBtnText: { color: '#fff', fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1.1 },
+  secondaryBtn: { borderWidth: 1, borderColor: colors.border, paddingVertical: 10, paddingHorizontal: 14 },
+  secondaryBtnText: { color: '#463d31', fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1.1 },
 });
 
 export default MyListingsScreen;

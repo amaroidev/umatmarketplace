@@ -13,6 +13,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import productService from '../services/product.service';
 import { Product } from '../types';
+import { colors } from '../theme';
 
 const PRODUCTS_CACHE_KEY = 'products_cache_v1';
 
@@ -69,6 +70,10 @@ const ProductsScreen = ({ navigation }: any) => {
 
   return (
     <View style={styles.container}>
+      <View style={styles.heroTop}>
+        <Text style={styles.heroLabel}>Campus marketplace</Text>
+        <Text style={styles.heroTitle}>Browse Listings</Text>
+      </View>
       <View style={styles.searchWrap}>
         <TextInput
           style={styles.searchInput}
@@ -123,42 +128,52 @@ const ProductsScreen = ({ navigation }: any) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f9fafb' },
-  searchWrap: { flexDirection: 'row', gap: 8, padding: 12, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: colors.bg },
+  heroTop: {
+    paddingTop: 14,
+    paddingHorizontal: 12,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    backgroundColor: '#f4ecdd',
+  },
+  heroLabel: { fontSize: 10, color: '#7c6f60', textTransform: 'uppercase', letterSpacing: 1.6, fontWeight: '800' },
+  heroTitle: { marginTop: 4, fontSize: 22, color: colors.text, fontWeight: '900', textTransform: 'uppercase' },
+  searchWrap: { flexDirection: 'row', gap: 8, padding: 12, backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.border },
   searchInput: {
     flex: 1,
-    backgroundColor: '#f3f4f6',
-    borderRadius: 10,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: colors.border,
     paddingHorizontal: 12,
     paddingVertical: 10,
   },
   searchBtn: {
-    backgroundColor: '#2563eb',
-    borderRadius: 10,
+    backgroundColor: colors.text,
     justifyContent: 'center',
     paddingHorizontal: 14,
   },
-  searchBtnText: { color: '#fff', fontWeight: '600' },
-  filterRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 12, paddingBottom: 10, backgroundColor: '#fff' },
-  filterChip: { borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 999, paddingHorizontal: 12, paddingVertical: 7, backgroundColor: '#fff' },
-  filterChipActive: { backgroundColor: '#111827', borderColor: '#111827' },
-  filterChipText: { fontSize: 11, fontWeight: '700', color: '#6b7280' },
+  searchBtnText: { color: '#fff', fontWeight: '800', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1.2 },
+  filterRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 12, paddingBottom: 10, backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.border },
+  filterChip: { borderWidth: 1, borderColor: colors.border, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 7, backgroundColor: '#fff' },
+  filterChipActive: { backgroundColor: colors.text, borderColor: colors.text },
+  filterChipText: { fontSize: 10, fontWeight: '800', color: '#6f6559', letterSpacing: 1.1 },
   filterChipTextActive: { color: '#fff' },
   listContent: { padding: 12, gap: 10 },
   card: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
+    backgroundColor: '#fffdf8',
+    borderRadius: 0,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: colors.border,
   },
   image: { width: '100%', height: 160, backgroundColor: '#e5e7eb' },
   cardContent: { padding: 10 },
   title: { fontSize: 15, fontWeight: '600', color: '#111827' },
-  price: { marginTop: 4, fontSize: 16, fontWeight: '700', color: '#2563eb' },
-  meta: { marginTop: 4, fontSize: 12, color: '#6b7280' },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  emptyText: { textAlign: 'center', color: '#6b7280', marginTop: 40 },
+  price: { marginTop: 4, fontSize: 16, fontWeight: '800', color: '#2f5d4f' },
+  meta: { marginTop: 4, fontSize: 11, color: '#7b6f61', textTransform: 'uppercase', letterSpacing: 0.8 },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.bg },
+  emptyText: { textAlign: 'center', color: '#7b6f61', marginTop: 40, textTransform: 'uppercase', letterSpacing: 1.2, fontSize: 11, fontWeight: '700' },
 });
 
 export default ProductsScreen;
