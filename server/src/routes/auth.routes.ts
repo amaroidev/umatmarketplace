@@ -12,6 +12,7 @@ import {
   updateNotificationSettings,
   updatePrivacySettings,
   deleteAccount,
+  updateSellerOnboarding,
 } from '../controllers/auth.controller';
 import { authenticate } from '../middleware/auth';
 import { validate } from '../middleware/validate';
@@ -138,5 +139,8 @@ router.put('/settings/privacy', authenticate, updatePrivacySettings);
 
 // @route   DELETE /api/auth/account
 router.delete('/account', authenticate, deleteAccount);
+
+// @route   PUT /api/auth/seller-onboarding
+router.put('/seller-onboarding', authenticate, updateSellerOnboarding);
 
 export default router;

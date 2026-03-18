@@ -85,7 +85,10 @@ const Dashboard: React.FC = () => {
               { to: '/messages', icon: <ShoppingBag className="h-3.5 w-3.5" />, label: 'Messages' },
               { to: '/notifications', icon: <Bell className="h-3.5 w-3.5" />, label: 'Notifications' },
               ...(user?.role === 'seller' || user?.role === 'admin'
-                ? [{ to: '/sell', icon: <PenSquare className="h-3.5 w-3.5" />, label: '+ Sell' }]
+                ? [
+                    { to: '/sell', icon: <PenSquare className="h-3.5 w-3.5" />, label: '+ Sell' },
+                    { to: '/seller/onboarding', icon: <Package className="h-3.5 w-3.5" />, label: 'Onboarding' },
+                  ]
                 : []),
             ].map(({ to, icon, label }) => (
               <Link

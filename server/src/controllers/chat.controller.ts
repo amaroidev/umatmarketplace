@@ -98,13 +98,14 @@ export const sendMessage = async (
 ): Promise<void> => {
   try {
     const { id } = req.params;
-    const { content, type } = req.body;
+    const { content, type, offer, quickReplyLabel, attachments } = req.body;
 
     const message = await chatService.sendMessage(
       id,
       req.user!._id.toString(),
       content,
-      type
+      type,
+      { offer, quickReplyLabel, attachments }
     );
 
     res.status(201).json({

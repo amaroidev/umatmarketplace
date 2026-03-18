@@ -35,10 +35,14 @@ const MyListings: React.FC = () => {
   const [importWithImages, setImportWithImages] = useState(false);
   const [previewingCSV, setPreviewingCSV] = useState(false);
   const [pendingCSVFile, setPendingCSVFile] = useState<File | null>(null);
-  const [csvPreview, setCsvPreview] = useState<{ importMode: 'shopify' | 'generic'; headers: string[]; totalRows: number; estimatedValid: number; estimatedInvalid: number } | null>(null);
+  const [csvPreview, setCsvPreview] = useState<{ importMode: 'shopify' | 'generic'; headers: string[]; totalRows: number; estimatedValid: number; estimatedInvalid: number; mappingHints?: Record<string, string[]>; dryRunDiff?: { toCreate: number; skipped: number } } | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const [bulkUpdatingStatus, setBulkUpdatingStatus] = useState(false);
+  const [bulkAction, setBulkAction] = useState<'none' | 'price_adjust' | 'set_tags' | 'set_category' | 'duplicate' | 'archive'>('none');
+  const [bulkPercent, setBulkPercent] = useState('10');
+  const [bulkTags, setBulkTags] = useState('');
+  const [bulkCategory, setBulkCategory] = useState('others');
   const [confirmDelete, setConfirmDelete] = useState<{ mode: 'single' | 'bulk'; productId?: string; count?: number } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -227,6 +231,36 @@ const MyListings: React.FC = () => {
     }
   };
 
+  const runAdvancedBulkAction = async () => {
+    if (selectedIds.length === 0 || bulkAction === 'none') return;
+    try {
+      const payload: any = { productIds: selectedIds, action: bulkAction };
+      if (bulkAction === 'price_adjust') payload.percent = Number(bulkPercent);
+      if (bulkAction === 'set_tags') payload.tags = bulkTags.split(',').map((t) => t.trim()).filter(Boolean);
+      if (bulkAction === 'set_category') payload.category = bulkCategory;
+      const res = await productService.bulkUpdateDetails(payload);
+      toast.success(`Bulk done • ${res.data.modifiedCount || res.data.duplicatedCount}`);
+      fetchListings();
+      setSelectedIds([]);
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Bulk action failed');
+    }
+  };
+
+  const downloadErrorTemplate = async () => {
+    try {
+      const blob = await productService.downloadImportErrorsTemplate();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'import-errors-template.csv';
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch {
+      toast.error('Failed to download error CSV template');
+    }
+  };
+
   const updateFilter = (key: string, value: string) => {
     const params = new URLSearchParams(searchParams);
     if (value) params.set(key, value); else params.delete(key);
@@ -264,6 +298,12 @@ const MyListings: React.FC = () => {
             onChange={handleImportCSV}
             className="hidden"
           />
+          <button
+            onClick={downloadErrorTemplate}
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-white text-earth-900 border border-earth-300 text-xs font-bold uppercase tracking-[0.12em] hover:bg-earth-50 transition-colors"
+          >
+            Error CSV template
+          </button>
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={importing}
@@ -347,6 +387,30 @@ const MyListings: React.FC = () => {
               <Trash2 className="h-3.5 w-3.5" />
               {bulkDeleting ? 'Deleting...' : 'Delete Selected'}
             </button>
+            <select value={bulkAction} onChange={(e) => setBulkAction(e.target.value as any)} className="border border-earth-300 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-earth-700">
+              <option value="none">Advanced action</option>
+              <option value="price_adjust">Price +/- %</option>
+              <option value="set_tags">Set tags</option>
+              <option value="set_category">Set category</option>
+              <option value="duplicate">Duplicate selected</option>
+              <option value="archive">Archive selected</option>
+            </select>
+            {bulkAction === 'price_adjust' && (
+              <input value={bulkPercent} onChange={(e) => setBulkPercent(e.target.value)} className="w-20 border border-earth-300 px-2 py-1 text-[10px]" placeholder="10" />
+            )}
+            {bulkAction === 'set_tags' && (
+              <input value={bulkTags} onChange={(e) => setBulkTags(e.target.value)} className="w-40 border border-earth-300 px-2 py-1 text-[10px]" placeholder="tag1, tag2" />
+            )}
+            {bulkAction === 'set_category' && (
+              <input value={bulkCategory} onChange={(e) => setBulkCategory(e.target.value)} className="w-32 border border-earth-300 px-2 py-1 text-[10px]" placeholder="category slug" />
+            )}
+            <button
+              onClick={runAdvancedBulkAction}
+              disabled={selectedIds.length === 0 || bulkAction === 'none'}
+              className="inline-flex items-center gap-1.5 border border-earth-300 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-earth-700 hover:bg-earth-100 disabled:opacity-50"
+            >
+              Run
+            </button>
           </div>
         </div>
       )}
@@ -366,6 +430,19 @@ const MyListings: React.FC = () => {
               <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-earth-400 mb-2">Detected columns</p>
               <p className="text-xs text-earth-600 leading-6">{csvPreview.headers.join(', ')}</p>
             </div>
+            {csvPreview.mappingHints && (
+              <div className="mt-3 border border-earth-100 p-3">
+                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-earth-400 mb-2">Column mapping hints</p>
+                <div className="grid gap-1 text-xs text-earth-600">
+                  {Object.entries(csvPreview.mappingHints).map(([k, v]) => (
+                    <p key={k}><span className="font-bold uppercase text-earth-500">{k}:</span> {v.join(', ')}</p>
+                  ))}
+                </div>
+              </div>
+            )}
+            {csvPreview.dryRunDiff && (
+              <p className="mt-3 text-xs text-earth-500">Dry run: create {csvPreview.dryRunDiff.toCreate}, skip {csvPreview.dryRunDiff.skipped}</p>
+            )}
             <div className="mt-5 flex items-center justify-end gap-2">
               <button
                 onClick={() => { setPreviewingCSV(false); setCsvPreview(null); setPendingCSVFile(null); }}

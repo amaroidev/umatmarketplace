@@ -6,6 +6,7 @@ import User from '../models/User';
 import { uploadToCloudinary, deleteFromCloudinary } from '../utils/imageUpload';
 import fs from 'fs';
 import path from 'path';
+import growthService from '../services/growth.service';
 
 /**
  * @route   POST /api/auth/register
@@ -48,6 +49,8 @@ export const register = async (
       message: 'Account created successfully.',
       data: { user, token },
     });
+
+    await growthService.captureEvent(user._id.toString(), 'signup', { method: 'email' });
   } catch (error) {
     next(error);
   }
@@ -81,6 +84,8 @@ export const login = async (
       message: 'Login successful.',
       data: { user, token },
     });
+
+    await growthService.captureEvent(user._id.toString(), 'login', { method: 'email' });
   } catch (error) {
     next(error);
   }
@@ -392,6 +397,69 @@ export const googleLogin = async (
       message: 'Google login successful.',
       data: { user, token, isNewUser, needsProfileCompletion },
     });
+
+    await growthService.captureEvent(user._id.toString(), isNewUser ? 'signup' : 'login', { method: 'google' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @route   PUT /api/auth/seller-onboarding
+ * @desc    Complete/update seller onboarding wizard
+ * @access  Private (Seller/Admin)
+ */
+export const updateSellerOnboarding = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    if (!req.user || !['seller', 'admin'].includes(req.user.role)) {
+      res.status(403).json({ success: false, message: 'Seller access required.' });
+      return;
+    }
+
+    const {
+      storeName,
+      brandName,
+      responseTimeMinutes,
+      payoutMethod,
+      payoutProvider,
+      payoutAccountName,
+      payoutAccountNumber,
+      identityDocumentUrl,
+      identityStatus,
+      completed,
+    } = req.body;
+
+    const current = await User.findById(req.user._id);
+    if (!current) {
+      res.status(404).json({ success: false, message: 'User not found.' });
+      return;
+    }
+
+    const onboardingPatch: any = {
+      payoutSetupComplete: !!(payoutMethod && payoutAccountNumber && payoutAccountName),
+      payoutMethod,
+      payoutProvider,
+      payoutAccountName,
+      payoutAccountNumber,
+      identityDocumentUrl,
+      identityStatus: identityStatus || (identityDocumentUrl ? 'pending' : current.sellerOnboarding?.identityStatus || 'not_submitted'),
+      identitySubmittedAt: identityDocumentUrl ? new Date() : current.sellerOnboarding?.identitySubmittedAt,
+      completed: !!completed,
+      completedAt: completed ? new Date() : current.sellerOnboarding?.completedAt,
+    };
+
+    const user = await authService.updateProfile(req.user._id.toString(), {
+      storeName,
+      brandName,
+      sellerOnboarding: onboardingPatch,
+      ...(responseTimeMinutes !== undefined ? { responseTimeMinutes } : {}),
+    } as any);
+
+    res.status(200).json({ success: true, message: 'Seller onboarding updated.', data: { user } });
   } catch (error) {
     next(error);
   }

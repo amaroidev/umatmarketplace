@@ -25,6 +25,8 @@ import {
   getCategorySpotlights,
   getCollections,
   getCollectionBySlug,
+  bulkUpdateProductDetails,
+  downloadImportErrorTemplate,
 } from '../controllers/product.controller';
 import { authenticate, ensureProfileComplete } from '../middleware/auth';
 import { isSeller, isAdmin } from '../middleware/roleCheck';
@@ -103,6 +105,12 @@ router.post(
 
 // PATCH /api/products/bulk/status — bulk status update
 router.patch('/bulk/status', authenticate, isSeller, bulkUpdateProductStatus);
+
+// PATCH /api/products/bulk/details — advanced bulk operations
+router.patch('/bulk/details', authenticate, isSeller, bulkUpdateProductDetails);
+
+// GET /api/products/bulk/csv/errors-sample — template for error CSV export
+router.get('/bulk/csv/errors-sample', authenticate, isSeller, downloadImportErrorTemplate);
 
 // POST /api/products/:id/duplicate — duplicate a product
 router.post('/:id/duplicate', authenticate, isSeller, duplicateProduct);

@@ -229,6 +229,7 @@ const Header: React.FC = () => {
                           { to: '/settings', icon: <Settings className="h-3.5 w-3.5" />, label: 'Settings' },
                           ...(user?.role === 'admin' ? [
                             { to: '/admin', icon: <Grid className="h-3.5 w-3.5" />, label: 'Admin' },
+                            { to: '/admin/growth', icon: <Grid className="h-3.5 w-3.5" />, label: 'Growth Suite' },
                           ] : []),
                         ].map(({ to, icon, label }) => (
                           <Link
@@ -299,7 +300,7 @@ const Header: React.FC = () => {
                 { to: '/saved', label: 'Saved items' },
                 { to: '/notifications', label: 'Notifications' },
                 { to: '/settings', label: 'Settings' },
-                ...(user?.role === 'admin' ? [{ to: '/admin', label: 'Admin dashboard' }] : []),
+                ...(user?.role === 'admin' ? [{ to: '/admin', label: 'Admin dashboard' }, { to: '/admin/growth', label: 'Growth suite' }] : []),
                 { to: '/orders', label: 'My orders' },
               ] : []),
             ].map(({ to, label }) => (

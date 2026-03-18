@@ -315,10 +315,26 @@ const productService = {
     return response.data;
   },
 
-  previewCSV: async (file: File): Promise<{ success: boolean; message: string; data: { importMode: 'shopify' | 'generic'; headers: string[]; totalRows: number; estimatedValid: number; estimatedInvalid: number } }> => {
+  previewCSV: async (file: File): Promise<{ success: boolean; message: string; data: { importMode: 'shopify' | 'generic'; headers: string[]; totalRows: number; estimatedValid: number; estimatedInvalid: number; mappingHints?: Record<string, string[]>; dryRunDiff?: { toCreate: number; skipped: number } } }> => {
     const formData = new FormData();
     formData.append('csvFile', file);
     const response = await api.post('/products/bulk/csv/preview', formData);
+    return response.data;
+  },
+
+  bulkUpdateDetails: async (payload: {
+    productIds: string[];
+    action: 'price_adjust' | 'set_tags' | 'set_category' | 'duplicate' | 'archive';
+    percent?: number;
+    tags?: string[];
+    category?: string;
+  }): Promise<{ success: boolean; message: string; data: { modifiedCount: number; duplicatedCount: number } }> => {
+    const response = await api.patch('/products/bulk/details', payload);
+    return response.data;
+  },
+
+  downloadImportErrorsTemplate: async (): Promise<Blob> => {
+    const response = await api.get('/products/bulk/csv/errors-sample', { responseType: 'blob' });
     return response.data;
   },
 

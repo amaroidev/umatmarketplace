@@ -454,6 +454,7 @@ const HomePage: React.FC = () => {
                     >
                       <div className="h-20 w-20 flex-shrink-0 overflow-hidden bg-earth-100">
                         <img
+                          loading="lazy"
                           src={product._id ? getDisplayImage(product) : product.image}
                           alt={product.title}
                           className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
@@ -507,6 +508,7 @@ const HomePage: React.FC = () => {
                 className="group relative isolate flex min-h-[420px] overflow-hidden bg-[#111111]"
               >
                 <img
+                          loading="lazy"
                   src={getDisplayImage(campusEditSlots[0].live, campusEditSlots[0].curated?.image, campusEditSlots[0].curated?.title)}
                   alt={campusEditSlots[0].live?.title || campusEditSlots[0].curated?.title || 'Curated'}
                   className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
@@ -543,6 +545,7 @@ const HomePage: React.FC = () => {
                   >
                     <div className={`overflow-hidden ${index === 2 ? 'min-h-[240px]' : 'aspect-[4/5]'}`}>
                       <img
+                          loading="lazy"
                         src={getDisplayImage(slot.live, slot.curated?.image, slot.curated?.title)}
                         alt={slot.live?.title || slot.curated?.title || 'Curated'}
                         className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
@@ -749,6 +752,7 @@ const HomePage: React.FC = () => {
                   >
                     <div className="relative aspect-square overflow-hidden bg-earth-200">
                       <img
+                          loading="lazy"
                         src={getProductImage(p) ?? `https://placehold.co/300x300/e8ecef/6c7275?text=${encodeURIComponent(p.title.slice(0, 8))}`}
                         alt={p.title}
                         className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
@@ -819,6 +823,7 @@ const HomePage: React.FC = () => {
                 <Link key={product._id} to={product.isCurated ? '/products' : `/products/${product._id}`} className="group w-[260px] border border-earth-200 bg-earth-50">
                   <div className="relative aspect-[4/5] overflow-hidden bg-earth-100">
                     <img
+                          loading="lazy"
                       src={product.isCurated ? product.image : getDisplayImage(product)}
                       alt={product.title}
                       className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
@@ -878,6 +883,7 @@ const HomePage: React.FC = () => {
                 {recommendedItems.map((product: any) => (
                   <Link key={product._id} to={product.isCurated ? '/products' : `/products/${product._id}`} className="flex items-center gap-3 border border-white/10 p-3 hover:bg-white/[0.03]">
                     <img
+                          loading="lazy"
                       src={product.isCurated ? product.image : getDisplayImage(product)}
                       alt={product.title}
                       className="h-14 w-14 object-cover"
@@ -998,6 +1004,7 @@ const HomePage: React.FC = () => {
                   <div className="aspect-[4/3] overflow-hidden bg-earth-100">
                     {item.hero?.image ? (
                       <img
+                          loading="lazy"
                         src={item.hero.image}
                         alt={item.title}
                         className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"

@@ -117,6 +117,18 @@ class AuthService {
       bio: string;
       storeName: string;
       brandName: string;
+      sellerOnboarding: {
+        completed?: boolean;
+        payoutSetupComplete?: boolean;
+        payoutMethod?: 'momo' | 'bank';
+        payoutProvider?: string;
+        payoutAccountName?: string;
+        payoutAccountNumber?: string;
+        identityStatus?: 'not_submitted' | 'pending' | 'verified' | 'rejected';
+        identityDocumentUrl?: string;
+        identitySubmittedAt?: Date;
+        completedAt?: Date;
+      };
     }>
   ): Promise<IUserDocument> {
     const user = await User.findByIdAndUpdate(

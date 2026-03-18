@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import { User, Product, Order, Category, Dispute } from '../models';
+import { User, Product, Order, Category, Dispute, OpsAuditLog, RetryJob } from '../models';
 import ApiError from '../utils/ApiError';
 
 interface PaginationInput {
@@ -109,6 +109,14 @@ class AdminService {
     user.isBanned = isBanned;
     await user.save();
 
+    await OpsAuditLog.create({
+      actor: currentAdminId,
+      action: isBanned ? 'ban_user' : 'unban_user',
+      scope: 'users',
+      targetId: userId,
+      status: 'success',
+    });
+
     return user;
   }
 
@@ -121,6 +129,13 @@ class AdminService {
 
     user.isVerified = isVerified;
     await user.save();
+
+    await OpsAuditLog.create({
+      action: isVerified ? 'verify_seller' : 'unverify_seller',
+      scope: 'users',
+      targetId: userId,
+      status: 'success',
+    });
 
     return user;
   }
@@ -175,6 +190,14 @@ class AdminService {
     if (updates.isFeatured !== undefined) product.isFeatured = updates.isFeatured;
 
     await product.save();
+
+    await OpsAuditLog.create({
+      action: 'moderate_product',
+      scope: 'products',
+      targetId: productId,
+      status: 'success',
+      details: updates,
+    });
 
     return product.populate([
       { path: 'category', select: 'name slug' },
@@ -235,6 +258,64 @@ class AdminService {
     ]);
 
     return { products, disputes };
+  }
+
+  async getOpsAuditLogs(limit: number = 100): Promise<any[]> {
+    return OpsAuditLog.find().sort({ createdAt: -1 }).limit(Math.min(200, Math.max(1, limit))).lean();
+  }
+
+  async listRetryJobs(limit: number = 100): Promise<any[]> {
+    return RetryJob.find().sort({ createdAt: -1 }).limit(Math.min(200, Math.max(1, limit))).lean();
+  }
+
+  async enqueueRetryJob(payload: { type: 'import' | 'notification' | 'payment' | 'moderation'; payload: any; runAt?: string }): Promise<any> {
+    return RetryJob.create({
+      type: payload.type,
+      payload: payload.payload || {},
+      runAt: payload.runAt ? new Date(payload.runAt) : new Date(),
+      status: 'pending',
+      attempts: 0,
+      maxAttempts: 3,
+    });
+  }
+
+  async runRetryJob(jobId: string): Promise<any> {
+    const job = await RetryJob.findById(jobId);
+    if (!job) throw ApiError.notFound('Retry job not found');
+    if (job.status === 'completed') return job;
+
+    job.status = 'processing';
+    await job.save();
+
+    try {
+      // Placeholder execution scaffold for future workers
+      job.attempts += 1;
+      job.status = 'completed';
+      job.lastError = '';
+      await job.save();
+
+      await OpsAuditLog.create({
+        action: 'run_retry_job',
+        scope: 'retry_jobs',
+        targetId: jobId,
+        status: 'success',
+      });
+    } catch (error: any) {
+      job.attempts += 1;
+      job.status = job.attempts >= job.maxAttempts ? 'failed' : 'pending';
+      job.lastError = error?.message || 'Retry execution failed';
+      await job.save();
+
+      await OpsAuditLog.create({
+        action: 'run_retry_job',
+        scope: 'retry_jobs',
+        targetId: jobId,
+        status: 'failed',
+        details: { error: job.lastError },
+      });
+    }
+
+    return job;
   }
 }
 

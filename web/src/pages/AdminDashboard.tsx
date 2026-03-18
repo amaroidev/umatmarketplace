@@ -21,7 +21,7 @@ import { Button, Input, LoadingSpinner } from '../components/ui';
 import { OrderPopulated, ProductPopulated, User } from '../types';
 import { Link } from 'react-router-dom';
 
-type AdminTab = 'overview' | 'users' | 'products' | 'orders' | 'disputes';
+type AdminTab = 'overview' | 'users' | 'products' | 'orders' | 'disputes' | 'ops';
 
 const TABS: { value: AdminTab; label: string }[] = [
   { value: 'overview', label: 'Overview' },
@@ -29,6 +29,7 @@ const TABS: { value: AdminTab; label: string }[] = [
   { value: 'products', label: 'Products' },
   { value: 'orders', label: 'Orders' },
   { value: 'disputes', label: 'Disputes' },
+  { value: 'ops', label: 'Ops' },
 ];
 
 const DISPUTE_STATUS_COLORS: Record<string, string> = {
@@ -62,6 +63,10 @@ const AdminDashboard: React.FC = () => {
   const [disputeStatus, setDisputeStatus] = useState('');
   const [adminNote, setAdminNote] = useState('');
   const [runningAutomation, setRunningAutomation] = useState(false);
+  const [opsAuditLogs, setOpsAuditLogs] = useState<any[]>([]);
+  const [retryJobs, setRetryJobs] = useState<any[]>([]);
+  const [newRetryType, setNewRetryType] = useState<'import' | 'notification' | 'payment' | 'moderation'>('notification');
+  const [newRetryPayload, setNewRetryPayload] = useState('{"note":"manual retry"}');
 
   const fetchStats = async () => {
     try {
@@ -137,9 +142,64 @@ const AdminDashboard: React.FC = () => {
     setLoading(false);
   };
 
+  const fetchOpsData = async () => {
+    try {
+      const [logsRes, jobsRes] = await Promise.all([
+        adminService.getOpsAuditLogs({ limit: 40 }),
+        adminService.getRetryJobs({ limit: 40 }),
+      ]);
+      if (logsRes.success) setOpsAuditLogs(logsRes.data.logs || []);
+      if (jobsRes.success) setRetryJobs(jobsRes.data.jobs || []);
+    } catch {
+      toast.error('Failed to load ops data');
+    }
+  };
+
   useEffect(() => {
     refreshAll();
+    fetchOpsData();
   }, []);
+
+  const queueRetryJob = async () => {
+    setBusyId('retry-queue');
+    try {
+      let parsedPayload: Record<string, any> = {};
+      try {
+        parsedPayload = JSON.parse(newRetryPayload || '{}');
+      } catch {
+        toast.error('Retry payload must be valid JSON');
+        setBusyId(null);
+        return;
+      }
+      const res = await adminService.enqueueRetryJob({
+        type: newRetryType,
+        payload: parsedPayload,
+      });
+      if (res.success) {
+        toast.success('Retry job queued');
+        fetchOpsData();
+      }
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Failed to queue retry job');
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const runRetry = async (jobId: string) => {
+    setBusyId(jobId);
+    try {
+      const res = await adminService.runRetryJob(jobId);
+      if (res.success) {
+        toast.success('Retry job executed');
+        fetchOpsData();
+      }
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Failed to run retry job');
+    } finally {
+      setBusyId(null);
+    }
+  };
 
   const statCards = useMemo(() => {
     if (!stats) return [];
@@ -587,6 +647,61 @@ const AdminDashboard: React.FC = () => {
               </div>
             ))}
             {disputes.length === 0 && <p className="p-4 text-sm text-earth-500">No disputes found.</p>}
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'ops' && (
+        <div className="space-y-8">
+          <div className="border border-earth-200 bg-white p-5">
+            <h2 className="text-sm font-bold text-earth-900 uppercase tracking-[0.15em] mb-3">Queue Retry Job</h2>
+            <div className="grid gap-2 sm:grid-cols-3">
+              <select value={newRetryType} onChange={(e) => setNewRetryType(e.target.value as any)} className="border border-earth-200 px-3 py-2 text-sm">
+                <option value="notification">notification</option>
+                <option value="import">import</option>
+                <option value="payment">payment</option>
+                <option value="moderation">moderation</option>
+              </select>
+              <input value={newRetryPayload} onChange={(e) => setNewRetryPayload(e.target.value)} className="border border-earth-200 px-3 py-2 text-sm sm:col-span-2" />
+            </div>
+            <Button className="mt-3" onClick={queueRetryJob} isLoading={busyId === 'retry-queue'}>Queue Job</Button>
+          </div>
+
+          <div className="grid gap-6 lg:grid-cols-2">
+            <div className="border border-earth-200 bg-white">
+              <div className="border-b border-earth-100 px-5 py-4">
+                <h3 className="text-sm font-bold uppercase tracking-[0.12em] text-earth-900">Retry Jobs</h3>
+              </div>
+              <div className="divide-y divide-earth-100">
+                {retryJobs.length === 0 ? (
+                  <p className="p-4 text-sm text-earth-500">No retry jobs yet.</p>
+                ) : retryJobs.map((job) => (
+                  <div key={job._id} className="p-4 flex items-center justify-between gap-2">
+                    <div>
+                      <p className="text-xs font-bold uppercase tracking-[0.12em] text-earth-700">{job.type}</p>
+                      <p className="text-xs text-earth-500 mt-0.5">{job.status} · attempts {job.attempts}/{job.maxAttempts}</p>
+                    </div>
+                    <Button size="sm" variant="outline" onClick={() => runRetry(job._id)} isLoading={busyId === job._id}>Run</Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="border border-earth-200 bg-white">
+              <div className="border-b border-earth-100 px-5 py-4">
+                <h3 className="text-sm font-bold uppercase tracking-[0.12em] text-earth-900">Audit Logs</h3>
+              </div>
+              <div className="divide-y divide-earth-100 max-h-[480px] overflow-auto">
+                {opsAuditLogs.length === 0 ? (
+                  <p className="p-4 text-sm text-earth-500">No audit logs yet.</p>
+                ) : opsAuditLogs.map((log) => (
+                  <div key={log._id} className="p-4">
+                    <p className="text-xs font-bold uppercase tracking-[0.12em] text-earth-800">{log.action}</p>
+                    <p className="text-xs text-earth-500 mt-1">{log.scope} · {log.status} · {new Date(log.createdAt).toLocaleString()}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       )}

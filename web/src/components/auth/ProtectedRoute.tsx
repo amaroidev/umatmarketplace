@@ -24,6 +24,15 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, roles }) => {
     return <Navigate to="/" replace />;
   }
 
+  if (
+    user &&
+    ['seller', 'admin'].includes(user.role) &&
+    location.pathname !== '/seller/onboarding' &&
+    !user?.sellerOnboarding?.completed
+  ) {
+    return <Navigate to="/seller/onboarding" replace />;
+  }
+
   return <>{children}</>;
 };
 

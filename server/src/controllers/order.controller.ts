@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import orderService from '../services/order.service';
+import growthService from '../services/growth.service';
 
 /**
  * @route   POST /api/orders
@@ -29,6 +30,11 @@ export const createOrder = async (
       success: true,
       message: 'Order created successfully',
       data: { order },
+    });
+
+    await growthService.captureEvent(req.user?._id?.toString(), 'order', {
+      orderId: order._id,
+      totalAmount: order.totalAmount,
     });
   } catch (error) {
     next(error);

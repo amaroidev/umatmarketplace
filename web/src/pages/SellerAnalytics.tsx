@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import orderService from '../services/order.service';
 import productService from '../services/product.service';
+import growthService from '../services/growth.service';
 import toast from 'react-hot-toast';
 
 const labelBase = 'text-[9px] font-bold uppercase tracking-[0.28em] text-earth-400';
@@ -35,6 +36,11 @@ const SellerAnalyticsPage: React.FC = () => {
   const [newBundleName, setNewBundleName] = useState('');
   const [newBundleDiscount, setNewBundleDiscount] = useState('10');
   const [selectedBundleProductIds, setSelectedBundleProductIds] = useState<string[]>([]);
+  const [campaignName, setCampaignName] = useState('');
+  const [campaignStart, setCampaignStart] = useState('');
+  const [campaignEnd, setCampaignEnd] = useState('');
+  const [campaignCouponCode, setCampaignCouponCode] = useState('');
+  const [campaignAB, setCampaignAB] = useState<'A' | 'B'>('A');
 
   const { data: statsData, isLoading: statsLoading } = useQuery({
     queryKey: ['sellerStats'],
@@ -61,11 +67,17 @@ const SellerAnalyticsPage: React.FC = () => {
     queryFn: () => orderService.getSellerBundles(),
   });
 
+  const { data: campaignsData, refetch: refetchCampaigns } = useQuery({
+    queryKey: ['sellerCampaigns'],
+    queryFn: () => growthService.listCampaigns(),
+  });
+
   const stats = statsData?.data?.stats;
   const orders = salesData?.data?.orders ?? [];
   const listings = (listingsData as any)?.data ?? [];
   const coupons = (couponsData as any)?.data?.coupons ?? [];
   const bundles = (bundlesData as any)?.data?.bundles ?? [];
+  const campaigns = (campaignsData as any)?.data ?? [];
 
   const totalRevenue = stats?.totalRevenue ?? 0;
   const totalOrders = stats?.totalOrders ?? 0;
@@ -130,6 +142,33 @@ const SellerAnalyticsPage: React.FC = () => {
       }
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Failed to create bundle');
+    }
+  };
+
+  const createCampaign = async () => {
+    if (!campaignName.trim() || !campaignStart || !campaignEnd) {
+      toast.error('Set campaign name, start and end dates');
+      return;
+    }
+
+    try {
+      const res = await growthService.createCampaign({
+        name: campaignName.trim(),
+        startsAt: campaignStart,
+        endsAt: campaignEnd,
+        couponCode: campaignCouponCode.trim(),
+        featuredBoost: true,
+        abSlot: campaignAB,
+        targetType: 'all',
+      });
+      if (res.success) {
+        toast.success('Campaign scheduled');
+        setCampaignName('');
+        setCampaignCouponCode('');
+        refetchCampaigns();
+      }
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Failed to create campaign');
     }
   };
 
@@ -368,6 +407,32 @@ const SellerAnalyticsPage: React.FC = () => {
                   style={{ width: `${completionRate}%` }}
                 />
               </div>
+            </div>
+
+            <div className="mt-6 border border-earth-200 p-5">
+              <p className={labelBase}>Promotions engine</p>
+              <h3 className="mt-1 text-lg font-black uppercase tracking-tight text-earth-900 mb-3">Campaign scheduler</h3>
+              <div className="grid gap-2 sm:grid-cols-2 mb-3">
+                <input value={campaignName} onChange={(e) => setCampaignName(e.target.value)} placeholder="Campaign name" className="border border-earth-200 px-3 py-2 text-sm sm:col-span-2" />
+                <input type="datetime-local" value={campaignStart} onChange={(e) => setCampaignStart(e.target.value)} className="border border-earth-200 px-3 py-2 text-sm" />
+                <input type="datetime-local" value={campaignEnd} onChange={(e) => setCampaignEnd(e.target.value)} className="border border-earth-200 px-3 py-2 text-sm" />
+                <input value={campaignCouponCode} onChange={(e) => setCampaignCouponCode(e.target.value)} placeholder="Coupon code (optional)" className="border border-earth-200 px-3 py-2 text-sm" />
+                <select value={campaignAB} onChange={(e) => setCampaignAB(e.target.value as 'A' | 'B')} className="border border-earth-200 px-3 py-2 text-sm">
+                  <option value="A">A slot</option>
+                  <option value="B">B slot</option>
+                </select>
+              </div>
+              <button onClick={createCampaign} className="w-full bg-earth-900 text-white py-2 text-[10px] font-bold uppercase tracking-[0.16em]">Create Campaign</button>
+              {campaigns.length > 0 && (
+                <div className="mt-3 space-y-2">
+                  {campaigns.slice(0, 4).map((c: any) => (
+                    <div key={c._id} className="border border-earth-100 px-3 py-2 text-xs">
+                      <p className="font-bold text-earth-900">{c.name}</p>
+                      <p className="text-earth-500">{new Date(c.startsAt).toLocaleDateString()} - {new Date(c.endsAt).toLocaleDateString()} · Slot {c.abSlot || '-'}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="mt-6 border border-earth-200 p-5">

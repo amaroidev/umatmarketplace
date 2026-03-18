@@ -75,11 +75,16 @@ const chatService = {
   sendMessage: async (
     conversationId: string,
     content: string,
-    type: 'text' | 'image' = 'text'
+    type: 'text' | 'image' = 'text',
+    extra?: {
+      offer?: { amount: number; status: 'pending' | 'accepted' | 'rejected' | 'countered' };
+      quickReplyLabel?: string;
+      attachments?: { url: string; mimeType?: string; name?: string }[];
+    }
   ): Promise<MessageResponse> => {
     const response = await api.post(
       `/conversations/${conversationId}/messages`,
-      { content, type }
+      { content, type, ...extra }
     );
     return response.data;
   },

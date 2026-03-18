@@ -85,6 +85,16 @@ interface DisputesResponse {
   pagination: PaginationInfo;
 }
 
+interface OpsAuditLogsResponse {
+  success: boolean;
+  data: { logs: any[] };
+}
+
+interface RetryJobsResponse {
+  success: boolean;
+  data: { jobs: any[] };
+}
+
 const adminService = {
   getDashboardStats: async (): Promise<StatsResponse> => {
     const response = await api.get('/admin/dashboard/stats');
@@ -161,6 +171,26 @@ const adminService = {
     adminNote?: string
   ): Promise<{ success: boolean; data: { dispute: DisputePopulated } }> => {
     const response = await api.patch(`/disputes/${id}/status`, { status, adminNote });
+    return response.data;
+  },
+
+  getOpsAuditLogs: async (params?: { limit?: number }): Promise<OpsAuditLogsResponse> => {
+    const response = await api.get('/admin/ops/audit-logs', { params });
+    return response.data;
+  },
+
+  getRetryJobs: async (params?: { limit?: number }): Promise<RetryJobsResponse> => {
+    const response = await api.get('/admin/ops/retry-jobs', { params });
+    return response.data;
+  },
+
+  enqueueRetryJob: async (payload: { type: 'import' | 'notification' | 'payment' | 'moderation'; payload: Record<string, any>; runAt?: string }) => {
+    const response = await api.post('/admin/ops/retry-jobs', payload);
+    return response.data;
+  },
+
+  runRetryJob: async (id: string) => {
+    const response = await api.post(`/admin/ops/retry-jobs/${id}/run`);
     return response.data;
   },
 };

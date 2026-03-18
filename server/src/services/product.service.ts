@@ -903,6 +903,67 @@ class ProductService {
     const newProduct = await Product.create(duplicateData);
     return newProduct;
   }
+
+  async bulkUpdateDetails(
+    sellerId: string,
+    payload: {
+      productIds: string[];
+      action: 'price_adjust' | 'set_tags' | 'set_category' | 'duplicate' | 'archive';
+      percent?: number;
+      tags?: string[];
+      category?: string;
+    }
+  ): Promise<{ modifiedCount: number; duplicatedCount: number }> {
+    const ids = payload.productIds.slice(0, 100);
+    const baseQuery = { _id: { $in: ids }, seller: sellerId };
+
+    if (payload.action === 'archive') {
+      const result = await Product.updateMany(baseQuery, { $set: { status: 'removed' } });
+      return { modifiedCount: result.modifiedCount, duplicatedCount: 0 };
+    }
+
+    if (payload.action === 'set_category') {
+      if (!payload.category) throw ApiError.badRequest('category is required');
+      const categoryId = await this.resolveCategoryId(payload.category);
+      const result = await Product.updateMany(baseQuery, { $set: { category: categoryId } });
+      return { modifiedCount: result.modifiedCount, duplicatedCount: 0 };
+    }
+
+    if (payload.action === 'set_tags') {
+      const tags = (payload.tags || []).map((t) => t.trim().toLowerCase()).filter(Boolean).slice(0, 10);
+      const result = await Product.updateMany(baseQuery, { $set: { tags } });
+      return { modifiedCount: result.modifiedCount, duplicatedCount: 0 };
+    }
+
+    if (payload.action === 'price_adjust') {
+      if (payload.percent === undefined || !Number.isFinite(payload.percent)) {
+        throw ApiError.badRequest('percent is required for price_adjust');
+      }
+      const products = await Product.find(baseQuery).select('price');
+      let modifiedCount = 0;
+      for (const p of products) {
+        const nextPrice = Math.max(0.5, Number((p.price * (1 + payload.percent / 100)).toFixed(2)));
+        if (nextPrice !== p.price) {
+          p.price = nextPrice;
+          await p.save();
+          modifiedCount++;
+        }
+      }
+      return { modifiedCount, duplicatedCount: 0 };
+    }
+
+    if (payload.action === 'duplicate') {
+      const products = await Product.find(baseQuery).select('_id');
+      let duplicatedCount = 0;
+      for (const p of products) {
+        await this.duplicateProduct(p._id.toString(), sellerId);
+        duplicatedCount++;
+      }
+      return { modifiedCount: 0, duplicatedCount };
+    }
+
+    throw ApiError.badRequest('Unsupported bulk action');
+  }
 }
 
 export default new ProductService();

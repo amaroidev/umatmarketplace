@@ -6,6 +6,12 @@ export interface IMessageDocument extends Document {
   sender: mongoose.Types.ObjectId;
   content: string;
   type: 'text' | 'image' | 'system';
+  offer?: {
+    amount: number;
+    status: 'pending' | 'accepted' | 'rejected' | 'countered';
+  };
+  quickReplyLabel?: string;
+  attachments?: { url: string; mimeType?: string; name?: string }[];
   readBy: mongoose.Types.ObjectId[];
   createdAt: Date;
   updatedAt: Date;
@@ -35,6 +41,18 @@ const messageSchema = new Schema<IMessageDocument>(
       enum: ['text', 'image', 'system'],
       default: 'text',
     },
+    offer: {
+      amount: { type: Number },
+      status: { type: String, enum: ['pending', 'accepted', 'rejected', 'countered'] },
+    },
+    quickReplyLabel: { type: String, default: '' },
+    attachments: [
+      {
+        url: { type: String, required: true },
+        mimeType: { type: String, default: '' },
+        name: { type: String, default: '' },
+      },
+    ],
     readBy: [
       {
         type: Schema.Types.ObjectId,

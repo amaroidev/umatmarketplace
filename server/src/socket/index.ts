@@ -77,9 +77,9 @@ export const setupSocketHandlers = (io: SocketServer): void => {
     // ========================
     // Send a message
     // ========================
-    socket.on('message:send', async (data: { conversationId: string; content: string; type?: 'text' | 'image' | 'system' }) => {
+    socket.on('message:send', async (data: { conversationId: string; content: string; type?: 'text' | 'image' | 'system'; offer?: any; quickReplyLabel?: string; attachments?: any[] }) => {
       try {
-        const { conversationId, content, type } = data;
+        const { conversationId, content, type, offer, quickReplyLabel, attachments } = data;
 
         if (!content || !content.trim()) return;
 
@@ -88,7 +88,8 @@ export const setupSocketHandlers = (io: SocketServer): void => {
           conversationId,
           userId,
           content,
-          type || 'text'
+          type || 'text',
+          { offer, quickReplyLabel, attachments }
         );
 
         // Broadcast the new message to everyone in the conversation room

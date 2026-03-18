@@ -26,6 +26,19 @@ export interface UpdateProfileData {
   bio?: string;
 }
 
+export interface SellerOnboardingData {
+  storeName?: string;
+  brandName?: string;
+  responseTimeMinutes?: number;
+  payoutMethod?: 'momo' | 'bank';
+  payoutProvider?: string;
+  payoutAccountName?: string;
+  payoutAccountNumber?: string;
+  identityDocumentUrl?: string;
+  identityStatus?: 'not_submitted' | 'pending' | 'verified' | 'rejected';
+  completed?: boolean;
+}
+
 export interface ChangePasswordData {
   currentPassword?: string;
   newPassword?: string;
@@ -61,6 +74,11 @@ const authService = {
     const formData = new FormData();
     formData.append('avatar', file);
     const response = await api.post('/auth/profile/avatar', formData);
+    return response.data;
+  },
+
+  updateSellerOnboarding: async (data: SellerOnboardingData) => {
+    const response = await api.put('/auth/seller-onboarding', data);
     return response.data;
   },
 

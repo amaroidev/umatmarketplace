@@ -167,7 +167,12 @@ class ChatService {
     conversationId: string,
     senderId: string,
     content: string,
-    type: 'text' | 'image' | 'system' = 'text'
+    type: 'text' | 'image' | 'system' = 'text',
+    extra?: {
+      offer?: { amount: number; status: 'pending' | 'accepted' | 'rejected' | 'countered' };
+      quickReplyLabel?: string;
+      attachments?: { url: string; mimeType?: string; name?: string }[];
+    }
   ): Promise<IMessageDocument> {
     // Verify conversation and participation
     const conversation = await Conversation.findById(conversationId);
@@ -188,6 +193,9 @@ class ChatService {
       sender: senderId,
       content: content.trim(),
       type,
+      offer: extra?.offer,
+      quickReplyLabel: extra?.quickReplyLabel,
+      attachments: extra?.attachments || [],
       readBy: [senderId], // Sender has read their own message
     });
 

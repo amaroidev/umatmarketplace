@@ -10,3 +10,8 @@ export { default as Notification } from './Notification';
 export { default as Dispute } from './Dispute';
 export { default as Coupon } from './Coupon';
 export { default as Bundle } from './Bundle';
+export { default as PromotionCampaign } from './PromotionCampaign';
+export { default as TrustSignal } from './TrustSignal';
+export { default as AnalyticsEvent } from './AnalyticsEvent';
+export { default as OpsAuditLog } from './OpsAuditLog';
+export { default as RetryJob } from './RetryJob';

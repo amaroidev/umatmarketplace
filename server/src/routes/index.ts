@@ -10,6 +10,7 @@ import savedItemRoutes from './savedItem.routes';
 import notificationRoutes from './notification.routes';
 import adminRoutes from './admin.routes';
 import disputeRoutes from './dispute.routes';
+import growthRoutes from './growth.routes';
 
 const router = Router();
 
@@ -34,5 +35,6 @@ router.use('/saved', savedItemRoutes);
 router.use('/notifications', notificationRoutes);
 router.use('/admin', adminRoutes);
 router.use('/disputes', disputeRoutes);
+router.use('/growth', growthRoutes);
 
 export default router;

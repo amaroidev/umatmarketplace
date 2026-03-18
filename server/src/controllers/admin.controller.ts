@@ -169,3 +169,57 @@ export const getModerationQueue = async (
     next(error);
   }
 };
+
+export const getOpsAuditLogs = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 100;
+    const logs = await adminService.getOpsAuditLogs(limit);
+    res.status(200).json({ success: true, data: { logs } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getRetryJobs = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 100;
+    const jobs = await adminService.listRetryJobs(limit);
+    res.status(200).json({ success: true, data: { jobs } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const enqueueRetryJob = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const job = await adminService.enqueueRetryJob(req.body);
+    res.status(201).json({ success: true, message: 'Retry job queued', data: { job } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const runRetryJob = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const job = await adminService.runRetryJob(req.params.id);
+    res.status(200).json({ success: true, message: 'Retry job executed', data: { job } });
+  } catch (error) {
+    next(error);
+  }
+};

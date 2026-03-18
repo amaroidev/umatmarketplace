@@ -4,6 +4,7 @@ import axios from 'axios';
 import productService from '../services/product.service';
 import ApiError from '../utils/ApiError';
 import { uploadToCloudinary } from '../utils/imageUpload';
+import growthService from '../services/growth.service';
 
 /**
  * @route   POST /api/products
@@ -85,6 +86,12 @@ export const getProducts = async (
       message: 'Products retrieved successfully',
       data: result.products,
       pagination: result.pagination,
+    });
+
+    await growthService.captureEvent(req.user?._id?.toString(), 'view', {
+      route: 'products_list',
+      page: result.pagination.page,
+      total: result.pagination.total,
     });
   } catch (error) {
     next(error);
@@ -188,6 +195,11 @@ export const getProductById = async (
       success: true,
       message: 'Product retrieved',
       data: { product },
+    });
+
+    await growthService.captureEvent(req.user?._id?.toString(), 'view', {
+      route: 'product_detail',
+      productId: req.params.id,
     });
   } catch (error) {
     next(error);
@@ -846,6 +858,16 @@ export const previewProductsCSV = async (
       });
     }
 
+    const mappingHints = {
+      title: ['title', 'name', 'product_name', 'product title', 'item name', 'headline', 'handle'],
+      description: ['description', 'body', 'body_html', 'body (html)', 'details', 'summary', 'long_description'],
+      price: ['price', 'sale_price', 'regular_price', 'amount', 'variant price'],
+      category: ['category', 'type', 'product_type', 'department', 'collection'],
+      condition: ['condition', 'item_condition', 'state'],
+      tags: ['tags', 'keywords', 'labels'],
+      image: ['image', 'image_url', 'image src', 'main_image', 'variant image', 'image src'],
+    };
+
     res.status(200).json({
       success: true,
       message: 'CSV preview ready',
@@ -855,7 +877,76 @@ export const previewProductsCSV = async (
         totalRows: records.length,
         estimatedValid,
         estimatedInvalid,
+        mappingHints,
+        dryRunDiff: {
+          toCreate: estimatedValid,
+          skipped: estimatedInvalid,
+        },
       },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @route   GET /api/products/bulk/csv/errors-sample
+ * @desc    Download CSV template for import error report format
+ * @access  Private
+ */
+export const downloadImportErrorTemplate = async (
+  _req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const csv = 'row,message\n2,Missing title\n9,Invalid price value\n';
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename="import-errors-template.csv"');
+    res.status(200).send(csv);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @route   PATCH /api/products/bulk/details
+ * @desc    Bulk operations: price, tags, category, duplicate, archive
+ * @access  Private (Seller/Admin)
+ */
+export const bulkUpdateProductDetails = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { productIds, action, percent, tags, category } = req.body as {
+      productIds?: string[];
+      action?: 'price_adjust' | 'set_tags' | 'set_category' | 'duplicate' | 'archive';
+      percent?: number;
+      tags?: string[];
+      category?: string;
+    };
+
+    if (!Array.isArray(productIds) || productIds.length === 0) {
+      throw ApiError.badRequest('productIds is required');
+    }
+    if (!action) {
+      throw ApiError.badRequest('action is required');
+    }
+
+    const result = await productService.bulkUpdateDetails(req.user!._id.toString(), {
+      productIds,
+      action,
+      percent,
+      tags,
+      category,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Bulk operation completed',
+      data: result,
     });
   } catch (error) {
     next(error);

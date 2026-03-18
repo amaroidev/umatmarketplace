@@ -1,18 +1,18 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate, useParams, useSearchParams } from 'react-router-dom';
 import { Layout } from './components/layout';
 import { ProtectedRoute } from './components/auth';
 import { useAuth } from './context/AuthContext';
 
 // Pages
-import HomePage from './pages/Home';
-import DashboardPage from './pages/Dashboard';
+const HomePage = lazy(() => import('./pages/Home'));
+const DashboardPage = lazy(() => import('./pages/Dashboard'));
 import LoginPage from './pages/Login';
 import RegisterPage from './pages/Register';
 import ProfilePage from './pages/Profile';
 import NotFoundPage from './pages/NotFound';
-import ProductsPage from './pages/Products';
-import ProductDetailPage from './pages/ProductDetail';
+const ProductsPage = lazy(() => import('./pages/Products'));
+const ProductDetailPage = lazy(() => import('./pages/ProductDetail'));
 import CreateEditProductPage from './pages/CreateEditProduct';
 import MyListingsPage from './pages/MyListings';
 import CategoriesPage from './pages/Categories';
@@ -30,6 +30,10 @@ import SettingsPage from './pages/Settings';
 import SellerAnalyticsPage from './pages/SellerAnalytics';
 import DisputeCenterPage from './pages/DisputeCenter';
 import CollectionDetailPage from './pages/CollectionDetail';
+import SellerOnboardingPage from './pages/SellerOnboarding';
+import AdminGrowthPage from './pages/AdminGrowth';
+
+import { LoadingSpinner } from './components/ui';
 
 
 // Redirect helpers for legacy routes
@@ -53,7 +57,8 @@ const RootRoute: React.FC = () => {
 
 const App: React.FC = () => {
   return (
-    <Routes>
+    <Suspense fallback={<LoadingSpinner fullScreen text="Loading page..." />}>
+      <Routes>
       {/* Public routes with layout */}
       <Route element={<Layout />}>
         <Route path="/" element={<RootRoute />} />
@@ -155,6 +160,14 @@ const App: React.FC = () => {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/seller/onboarding"
+          element={
+            <ProtectedRoute roles={['seller', 'admin']}>
+              <SellerOnboardingPage />
+            </ProtectedRoute>
+          }
+        />
 
         {/* Messaging routes */}
         <Route
@@ -206,11 +219,20 @@ const App: React.FC = () => {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/admin/growth"
+          element={
+            <ProtectedRoute roles={['admin']}>
+              <AdminGrowthPage />
+            </ProtectedRoute>
+          }
+        />
 
         {/* 404 */}
         <Route path="*" element={<NotFoundPage />} />
       </Route>
-    </Routes>
+      </Routes>
+    </Suspense>
   );
 };
 

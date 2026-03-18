@@ -42,6 +42,18 @@ export interface IUserDocument extends Document {
   responseTimeMinutes: number;
   storeName?: string;
   brandName?: string;
+  sellerOnboarding?: {
+    completed: boolean;
+    payoutSetupComplete: boolean;
+    payoutMethod?: 'momo' | 'bank';
+    payoutProvider?: string;
+    payoutAccountName?: string;
+    payoutAccountNumber?: string;
+    identityStatus?: 'not_submitted' | 'pending' | 'verified' | 'rejected';
+    identityDocumentUrl?: string;
+    identitySubmittedAt?: Date;
+    completedAt?: Date;
+  };
   createdAt: Date;
   updatedAt: Date;
   comparePassword(candidatePassword: string): Promise<boolean>;
@@ -159,6 +171,22 @@ const userSchema = new Schema<IUserDocument>(
       default: '',
       trim: true,
       maxlength: [80, 'Brand name cannot exceed 80 characters'],
+    },
+    sellerOnboarding: {
+      completed: { type: Boolean, default: false },
+      payoutSetupComplete: { type: Boolean, default: false },
+      payoutMethod: { type: String, enum: ['momo', 'bank'] },
+      payoutProvider: { type: String, default: '' },
+      payoutAccountName: { type: String, default: '' },
+      payoutAccountNumber: { type: String, default: '' },
+      identityStatus: {
+        type: String,
+        enum: ['not_submitted', 'pending', 'verified', 'rejected'],
+        default: 'not_submitted',
+      },
+      identityDocumentUrl: { type: String, default: '' },
+      identitySubmittedAt: { type: Date },
+      completedAt: { type: Date },
     },
   },
   {

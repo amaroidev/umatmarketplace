@@ -45,6 +45,8 @@ const ChatRoom: React.FC = () => {
   const [hasMore, setHasMore] = useState(false);
   const [page, setPage] = useState(1);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [offerAmount, setOfferAmount] = useState('');
+  const [attachmentUrl, setAttachmentUrl] = useState('');
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -168,6 +170,46 @@ const ChatRoom: React.FC = () => {
     } finally {
       setSending(false);
       inputRef.current?.focus();
+    }
+  };
+
+  const sendOffer = async () => {
+    if (!conversationId) return;
+    const amount = Number(offerAmount);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      toast.error('Enter a valid offer amount');
+      return;
+    }
+    try {
+      await chatService.sendMessage(conversationId, `Offer: GHS ${amount.toFixed(2)}`, 'text', {
+        offer: { amount, status: 'pending' },
+      });
+      setOfferAmount('');
+      toast.success('Offer sent');
+    } catch {
+      toast.error('Failed to send offer');
+    }
+  };
+
+  const sendAttachment = async () => {
+    if (!conversationId || !attachmentUrl.trim()) return;
+    try {
+      await chatService.sendMessage(conversationId, 'Attachment shared', 'image', {
+        attachments: [{ url: attachmentUrl.trim(), mimeType: 'image/*', name: 'Shared attachment' }],
+      });
+      setAttachmentUrl('');
+      toast.success('Attachment sent');
+    } catch {
+      toast.error('Failed to send attachment');
+    }
+  };
+
+  const sendQuickReply = async (label: string) => {
+    if (!conversationId) return;
+    try {
+      await chatService.sendMessage(conversationId, label, 'text', { quickReplyLabel: label });
+    } catch {
+      toast.error('Failed to send quick reply');
     }
   };
 
@@ -368,6 +410,23 @@ const ChatRoom: React.FC = () => {
                         : 'bg-earth-100 text-earth-800'
                     }`}>
                       <p className="text-sm whitespace-pre-wrap break-words">{msg.content}</p>
+                      {msg.offer && (
+                        <p className={`mt-1 text-[10px] font-bold uppercase tracking-[0.12em] ${isMe ? 'text-white/70' : 'text-earth-500'}`}>
+                          Offer GHS {msg.offer.amount.toFixed(2)} · {msg.offer.status}
+                        </p>
+                      )}
+                      {msg.attachments && msg.attachments.length > 0 && (
+                        <div className="mt-2 space-y-1">
+                          {msg.attachments.map((a, i) => (
+                            <a key={`${a.url}-${i}`} href={a.url} target="_blank" rel="noreferrer" className={`block text-[11px] underline ${isMe ? 'text-white/70' : 'text-earth-600'}`}>
+                              {a.name || 'Attachment'}
+                            </a>
+                          ))}
+                        </div>
+                      )}
+                      {msg.quickReplyLabel && (
+                        <p className={`mt-1 text-[10px] uppercase tracking-[0.12em] ${isMe ? 'text-white/60' : 'text-earth-500'}`}>Quick reply</p>
+                      )}
                     </div>
                     <div className={`flex items-center gap-1 mt-0.5 px-1 ${isMe ? 'justify-end' : 'justify-start'}`}>
                       <span className="text-[10px] text-earth-400">
@@ -402,6 +461,36 @@ const ChatRoom: React.FC = () => {
 
       {/* Input Area */}
       <div className="px-4 py-3 border-t border-earth-200 bg-white">
+        <div className="mb-2 flex flex-wrap items-center gap-2">
+          {['Available now', 'Can negotiate', 'Meet at main gate'].map((q) => (
+            <button key={q} onClick={() => sendQuickReply(q)} className="border border-earth-200 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-earth-500 hover:border-earth-400 hover:text-earth-700">
+              {q}
+            </button>
+          ))}
+        </div>
+
+        <div className="mb-2 grid grid-cols-1 gap-2 sm:grid-cols-[1fr_auto_auto]">
+          <input
+            type="number"
+            value={offerAmount}
+            onChange={(e) => setOfferAmount(e.target.value)}
+            placeholder="Offer amount (GHS)"
+            className="border border-earth-200 px-3 py-2 text-xs"
+          />
+          <button onClick={sendOffer} className="border border-earth-200 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.12em] text-earth-700 hover:bg-earth-50">Send offer</button>
+          <input
+            type="url"
+            value={attachmentUrl}
+            onChange={(e) => setAttachmentUrl(e.target.value)}
+            placeholder="Attachment URL"
+            className="border border-earth-200 px-3 py-2 text-xs"
+          />
+        </div>
+
+        <div className="mb-3 flex justify-end">
+          <button onClick={sendAttachment} className="border border-earth-200 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.12em] text-earth-700 hover:bg-earth-50">Share attachment</button>
+        </div>
+
         <div className="flex items-center gap-3">
           <input
             ref={inputRef}

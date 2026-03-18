@@ -13,6 +13,18 @@ export interface User {
   location?: string;
   bio?: string;
   responseTimeMinutes?: number;
+  sellerOnboarding?: {
+    completed: boolean;
+    payoutSetupComplete: boolean;
+    payoutMethod?: 'momo' | 'bank';
+    payoutProvider?: string;
+    payoutAccountName?: string;
+    payoutAccountNumber?: string;
+    identityStatus?: 'not_submitted' | 'pending' | 'verified' | 'rejected';
+    identityDocumentUrl?: string;
+    identitySubmittedAt?: string;
+    completedAt?: string;
+  };
   savedItems: string[];
   createdAt: string;
   updatedAt: string;
@@ -217,6 +229,12 @@ export interface Message {
   sender: string | { _id: string; name: string; avatar?: string };
   content: string;
   type: MessageType;
+  offer?: {
+    amount: number;
+    status: 'pending' | 'accepted' | 'rejected' | 'countered';
+  };
+  quickReplyLabel?: string;
+  attachments?: { url: string; mimeType?: string; name?: string }[];
   readBy: string[];
   createdAt: string;
   updatedAt: string;

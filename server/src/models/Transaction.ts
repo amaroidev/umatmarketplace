@@ -55,7 +55,6 @@ const transactionSchema = new Schema<ITransactionDocument>(
 );
 
 // Indexes
-transactionSchema.index({ reference: 1 });
 transactionSchema.index({ order: 1 });
 transactionSchema.index({ status: 1 });
 

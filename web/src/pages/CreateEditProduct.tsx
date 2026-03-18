@@ -6,6 +6,7 @@ import { z } from 'zod';
 import toast from 'react-hot-toast';
 import { ArrowLeft } from 'lucide-react';
 import productService from '../services/product.service';
+import growthService from '../services/growth.service';
 import categoryService from '../services/category.service';
 import { ImageUpload } from '../components/product';
 import { Category, ProductPopulated } from '../types';
@@ -45,6 +46,7 @@ const CreateEditProduct: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [loadingProduct, setLoadingProduct] = useState(isEdit);
   const [removedImageIds, setRemovedImageIds] = useState<string[]>([]);
+  const [pricingInsights, setPricingInsights] = useState<any | null>(null);
 
   const {
     register,
@@ -99,6 +101,15 @@ const CreateEditProduct: React.FC = () => {
 
     fetchProduct();
   }, [id, isEdit, navigate, reset]);
+
+  useEffect(() => {
+    if (!isEdit || !id) return;
+    growthService.getSmartPricing(id)
+      .then((res) => {
+        if (res.success) setPricingInsights(res.data);
+      })
+      .catch(() => {});
+  }, [id, isEdit]);
 
   const onSubmit = async (data: ProductFormData) => {
     const totalImages = existingImages.length + images.length;
@@ -274,6 +285,18 @@ const CreateEditProduct: React.FC = () => {
             )}
           </div>
         </div>
+
+        {pricingInsights && (
+          <div className="border border-earth-200 bg-earth-50 p-4">
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-earth-400">Smart pricing assistant</p>
+            <p className="mt-2 text-xs text-earth-700">
+              Recommended band: <span className="font-bold">GHS {pricingInsights.recommendedMin}</span> - <span className="font-bold">GHS {pricingInsights.recommendedMax}</span>
+            </p>
+            <p className="mt-1 text-xs text-earth-500">
+              Sell-through probability: {Math.round((pricingInsights.sellThroughProbability || 0) * 100)}% · Confidence: {(pricingInsights.confidence || 'low').toUpperCase()}
+            </p>
+          </div>
+        )}
 
         {/* Category */}
         <div>

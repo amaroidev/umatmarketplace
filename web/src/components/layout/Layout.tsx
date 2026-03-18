@@ -7,6 +7,16 @@ const Layout: React.FC = () => {
   const { pathname } = useLocation();
   const isAuthPage = pathname === '/login' || pathname === '/register';
 
+  React.useEffect(() => {
+    const links = ['/products', '/categories', '/seller/onboarding', '/seller/analytics', '/admin/growth'];
+    links.forEach((to) => {
+      const link = document.createElement('link');
+      link.rel = 'prefetch';
+      link.href = to;
+      document.head.appendChild(link);
+    });
+  }, []);
+
   return (
     <div className="flex flex-col min-h-screen">
       <Header />
