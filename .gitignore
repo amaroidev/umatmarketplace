@@ -35,6 +35,8 @@ coverage/
 # Uploads
 uploads/*
 !uploads/.gitkeep
+server/uploads/*
+!server/uploads/.gitkeep
 
 # Mobile
 mobile/.expo/
