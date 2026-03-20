@@ -1,9 +1,11 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, Image, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import api from '../services/api';
 import productService from '../services/product.service';
 import { Product } from '../types';
 import { colors } from '../theme';
+import ScreenHeader from '../components/ScreenHeader';
 
 const MyListingsScreen = ({ navigation }: any) => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -44,13 +46,21 @@ const MyListingsScreen = ({ navigation }: any) => {
   }
 
   return (
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <ScreenHeader eyebrow="Seller workspace" title="Sell" subtitle="Create, manage, and optimize your listings." />
+      <View style={styles.actionBar}>
+        <TouchableOpacity style={styles.primaryAction} onPress={() => navigation.navigate('CreateListing')}>
+          <Text style={styles.primaryActionText}>Create listing</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.secondaryAction} onPress={() => navigation.navigate('SellerAnalytics')}>
+          <Text style={styles.secondaryActionText}>Analytics</Text>
+        </TouchableOpacity>
+      </View>
       <FlatList
-        style={styles.container}
       contentContainerStyle={styles.content}
       data={products}
       keyExtractor={(item) => item._id}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchListings(false); }} />}
-      ListHeaderComponent={<Text style={styles.header}>My Listings</Text>}
       ListEmptyComponent={<Text style={styles.empty}>No listings yet.</Text>}
       renderItem={({ item }) => (
         <View style={styles.card}>
@@ -74,14 +84,54 @@ const MyListingsScreen = ({ navigation }: any) => {
         </View>
       )}
     />
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   content: { padding: 16, paddingBottom: 32 },
+  actionBar: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    backgroundColor: colors.surface,
+    flexDirection: 'row',
+    gap: 10,
+  },
+  primaryAction: {
+    flex: 1,
+    backgroundColor: colors.text,
+    borderWidth: 1,
+    borderColor: colors.text,
+    alignItems: 'center',
+    paddingVertical: 11,
+  },
+  primaryActionText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+    letterSpacing: 1.1,
+  },
+  secondaryAction: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fffdf8',
+  },
+  secondaryActionText: {
+    color: '#463d31',
+    fontSize: 11,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 1.1,
+  },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.bg },
-  header: { fontSize: 28, fontWeight: '900', color: '#1f1a14', marginBottom: 16, textTransform: 'uppercase' },
   empty: { textAlign: 'center', color: '#6b7280', marginTop: 40 },
   card: { flexDirection: 'row', gap: 12, padding: 12, backgroundColor: '#fffdf8', borderWidth: 1, borderColor: colors.border, borderRadius: 0, marginBottom: 12 },
   image: { width: 88, height: 88, borderRadius: 10, backgroundColor: '#e5e7eb' },

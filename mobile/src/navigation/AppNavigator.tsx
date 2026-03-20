@@ -3,6 +3,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { ActivityIndicator, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 
 import {
@@ -22,6 +23,8 @@ import {
   ProfileEditScreen,
   SellerAnalyticsScreen,
   MyListingsScreen,
+  SettingsScreen,
+  SellerOnboardingScreen,
 } from '../screens';
 import { navigationRef } from './navigationRef';
 import { colors } from '../theme';
@@ -32,9 +35,8 @@ const Tab = createBottomTabNavigator();
 // ── Products stack ────────────────────────────────────────────────────────────
 const ProductsStack = createNativeStackNavigator();
 const ProductsStackScreen = () => (
-  <ProductsStack.Navigator screenOptions={{ headerShown: false }}>
+  <ProductsStack.Navigator initialRouteName="ProductsHome" screenOptions={{ headerShown: false }}>
     <ProductsStack.Screen name="ProductsHome" component={ProductsScreen} />
-    <ProductsStack.Screen name="HomeShowcase" component={HomeScreen} />
     <ProductsStack.Screen
       name="ProductDetail"
       component={ProductDetailScreen}
@@ -54,6 +56,24 @@ const MessagesStackScreen = () => (
       options={{ headerShown: true, headerBackTitle: 'Back' }}
     />
   </MessagesStack.Navigator>
+);
+
+// ── Seller tools stack ────────────────────────────────────────────────────────
+const SellerStack = createNativeStackNavigator();
+const SellerStackScreen = () => (
+  <SellerStack.Navigator initialRouteName="CreateListing" screenOptions={{ headerShown: false }}>
+    <SellerStack.Screen
+      name="CreateListing"
+      component={CreateListingScreen}
+      options={{ headerShown: true, title: 'New Listing', headerBackTitle: 'Back' }}
+    />
+    <SellerStack.Screen name="MyListings" component={MyListingsScreen} />
+    <SellerStack.Screen
+      name="SellerAnalytics"
+      component={SellerAnalyticsScreen}
+      options={{ headerShown: true, title: 'Seller Analytics', headerBackTitle: 'Back' }}
+    />
+  </SellerStack.Navigator>
 );
 
 // ── Orders stack ──────────────────────────────────────────────────────────────
@@ -80,30 +100,54 @@ const ProfileStackScreen = () => (
       options={{ headerShown: true, title: 'Edit Profile', headerBackTitle: 'Back' }}
     />
     <ProfileStack.Screen
-      name="CreateListing"
-      component={CreateListingScreen}
-      options={{ headerShown: true, title: 'New Listing', headerBackTitle: 'Back' }}
+      name="Settings"
+      component={SettingsScreen}
+      options={{ headerShown: true, title: 'Settings', headerBackTitle: 'Back' }}
     />
     <ProfileStack.Screen
-      name="SellerAnalytics"
-      component={SellerAnalyticsScreen}
-      options={{ headerShown: true, title: 'Seller Analytics', headerBackTitle: 'Back' }}
+      name="SellerOnboarding"
+      component={SellerOnboardingScreen}
+      options={{ headerShown: true, title: 'Seller Onboarding', headerBackTitle: 'Back' }}
     />
     <ProfileStack.Screen
-      name="MyListings"
-      component={MyListingsScreen}
-      options={{ headerShown: true, title: 'My Listings', headerBackTitle: 'Back' }}
+      name="SavedItems"
+      component={SavedScreen}
+      options={{ headerShown: true, title: 'Saved Items', headerBackTitle: 'Back' }}
+    />
+    <ProfileStack.Screen
+      name="Orders"
+      component={OrdersScreen}
+      options={{ headerShown: true, title: 'Orders', headerBackTitle: 'Back' }}
+    />
+    <ProfileStack.Screen
+      name="OrderDetail"
+      component={OrderDetailScreen}
+      options={{ headerShown: true, title: 'Order Details', headerBackTitle: 'Back' }}
+    />
+    <ProfileStack.Screen
+      name="Alerts"
+      component={NotificationsScreen}
+      options={{ headerShown: true, title: 'Alerts', headerBackTitle: 'Back' }}
+    />
+    <ProfileStack.Screen
+      name="MessagesCenter"
+      component={ConversationListScreen}
+      options={{ headerShown: true, title: 'Messages', headerBackTitle: 'Back' }}
+    />
+    <ProfileStack.Screen
+      name="Chat"
+      component={ChatScreen}
+      options={{ headerShown: true, headerBackTitle: 'Back' }}
     />
   </ProfileStack.Navigator>
 );
 
 // ── Bottom tabs ───────────────────────────────────────────────────────────────
-const tabIcon = (emoji: string) =>
-  ({ color }: { color: string }) => (
-    <Text style={{ fontSize: 18, color }}>{emoji}</Text>
-  );
+const tabIcon = (name: React.ComponentProps<typeof Ionicons>['name']) =>
+  ({ color }: { color: string }) => <Ionicons name={name} size={19} color={color} />;
 
-const MainTabs = () => (
+const MainTabs = ({ role }: { role?: string }) => (
+  // Keep equal tab widths by role count.
   <Tab.Navigator
     screenOptions={{
       headerShown: false,
@@ -112,53 +156,60 @@ const MainTabs = () => (
       tabBarStyle: {
         borderTopColor: colors.border,
         backgroundColor: '#fffdf8',
-        height: 64,
-        paddingTop: 5,
+        height: 62,
+        paddingTop: 2,
+        paddingBottom: 4,
+        paddingHorizontal: 0,
       },
       tabBarLabelStyle: {
-        fontSize: 10,
+        fontSize: 9,
         fontWeight: '800',
         textTransform: 'uppercase',
         letterSpacing: 1,
+        marginBottom: 0,
+      },
+      tabBarItemStyle: {
+        flex: 1,
+        minWidth: 0,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 0,
       },
     }}
   >
     <Tab.Screen
-      name="ProductsTab"
-      component={ProductsStackScreen}
-      options={{ title: 'Browse', tabBarIcon: tabIcon('🏠') }}
+      name="HomeTab"
+      component={HomeScreen}
+      options={{ title: 'Home', tabBarIcon: tabIcon('home-outline') }}
     />
     <Tab.Screen
-      name="Saved"
-      component={SavedScreen}
-      options={{ title: 'Saved', tabBarIcon: tabIcon('🔖') }}
+      name="ProductsTab"
+      component={ProductsStackScreen}
+      options={{ title: 'Browse', tabBarIcon: tabIcon('grid-outline') }}
     />
     <Tab.Screen
       name="MessagesTab"
       component={MessagesStackScreen}
-      options={{ title: 'Messages', tabBarIcon: tabIcon('💬') }}
+      options={{ title: 'Chat', tabBarIcon: tabIcon('chatbubble-ellipses-outline') }}
     />
-    <Tab.Screen
-      name="OrdersTab"
-      component={OrdersStackScreen}
-      options={{ title: 'Orders', tabBarIcon: tabIcon('📦') }}
-    />
-    <Tab.Screen
-      name="Notifications"
-      component={NotificationsScreen}
-      options={{ title: 'Alerts', tabBarIcon: tabIcon('🔔') }}
-    />
+    {(role === 'seller' || role === 'admin') && (
+      <Tab.Screen
+        name="SellerTab"
+        component={SellerStackScreen}
+        options={{ title: 'Sell', tabBarIcon: tabIcon('storefront-outline') }}
+      />
+    )}
     <Tab.Screen
       name="ProfileTab"
       component={ProfileStackScreen}
-      options={{ title: 'Profile', tabBarIcon: tabIcon('👤') }}
+      options={{ title: 'Me', tabBarIcon: tabIcon('person-outline') }}
     />
   </Tab.Navigator>
 );
 
 // ── Root navigator ────────────────────────────────────────────────────────────
 const AppNavigator = () => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
 
   if (isLoading) {
     return (
@@ -172,7 +223,9 @@ const AppNavigator = () => {
     <NavigationContainer ref={navigationRef}>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {isAuthenticated ? (
-          <Stack.Screen name="Main" component={MainTabs} />
+          <Stack.Screen name="Main">
+            {() => <MainTabs role={user?.role} />}
+          </Stack.Screen>
         ) : (
           <>
             <Stack.Screen name="Login" component={LoginScreen} />

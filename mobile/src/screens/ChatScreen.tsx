@@ -148,7 +148,7 @@ const ChatScreen = ({ route, navigation }: any) => {
         <View style={styles.inputRow}>
           {quickReplyMode && (
             <View style={styles.quickReplyRow}>
-              {['Available now', 'Can negotiate', 'Meet at main gate'].map((q) => (
+              {['Is this still available?', 'Can we meet on campus?', 'What is your best price?'].map((q) => (
                 <TouchableOpacity key={q} style={styles.quickChip} onPress={() => sendQuickReply(q)}>
                   <Text style={styles.quickChipText}>{q}</Text>
                 </TouchableOpacity>

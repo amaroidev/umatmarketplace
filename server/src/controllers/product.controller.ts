@@ -43,7 +43,8 @@ export const createProduct = async (
         flashSalePrice: req.body.flashSalePrice ? parseFloat(req.body.flashSalePrice) : undefined,
         flashSaleEndsAt: req.body.flashSaleEndsAt,
       },
-      files
+      files,
+      { protocol: req.protocol, host: req.get('host') || 'localhost' }
     );
 
     res.status(201).json({
@@ -269,7 +270,8 @@ export const updateProduct = async (
         flashSalePrice: req.body.flashSalePrice ? parseFloat(req.body.flashSalePrice) : undefined,
         flashSaleEndsAt: req.body.flashSaleEndsAt,
       },
-      files
+      files,
+      { protocol: req.protocol, host: req.get('host') || 'localhost' }
     );
 
     res.status(200).json({

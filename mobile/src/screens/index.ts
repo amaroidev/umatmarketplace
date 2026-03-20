@@ -14,3 +14,5 @@ export { default as CreateListingScreen } from './CreateListingScreen';
 export { default as ProfileEditScreen } from './ProfileEditScreen';
 export { default as SellerAnalyticsScreen } from './SellerAnalyticsScreen';
 export { default as MyListingsScreen } from './MyListingsScreen';
+export { default as SettingsScreen } from './SettingsScreen';
+export { default as SellerOnboardingScreen } from './SellerOnboardingScreen';

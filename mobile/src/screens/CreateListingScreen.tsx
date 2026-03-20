@@ -10,9 +10,14 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Image,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import * as ImagePicker from 'expo-image-picker';
 import api from '../services/api';
 import productService from '../services/product.service';
+import { colors } from '../theme';
+import ScreenHeader from '../components/ScreenHeader';
 
 interface Category {
   _id: string;
@@ -25,6 +30,19 @@ const DELIVERY_OPTIONS = [
   { value: 'delivery', label: 'Delivery Only' },
   { value: 'both', label: 'Pickup & Delivery' },
 ] as const;
+
+const CAMPUS_LOCATIONS = [
+  'Main Gate',
+  'Esther Hall',
+  'Independence Hall',
+  'Unity Hall',
+  'Queens Hall',
+  'Engineering Block',
+  'Science Block',
+  'Library',
+  'Student Center',
+  'Cafeteria',
+];
 
 const CreateListingScreen = ({ navigation }: any) => {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -40,6 +58,7 @@ const CreateListingScreen = ({ navigation }: any) => {
   const [pickupLocation, setPickupLocation] = useState('');
   const [tags, setTags] = useState('');
   const [status, setStatus] = useState<'active' | 'draft'>('active');
+  const [images, setImages] = useState<Array<{ uri: string; type?: string; name?: string }>>([]);
 
   useEffect(() => {
     navigation.setOptions({ headerShown: true, title: 'New Listing', headerBackTitle: 'Back' });
@@ -65,6 +84,7 @@ const CreateListingScreen = ({ navigation }: any) => {
         pickupLocation: pickupLocation.trim() || 'UMaT Campus',
         status,
         tags: tags.split(',').map((item) => item.trim()).filter(Boolean),
+        images,
       });
 
       if (res.success) {
@@ -80,12 +100,49 @@ const CreateListingScreen = ({ navigation }: any) => {
     }
   };
 
+  const pickImages = async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      return Alert.alert('Permission needed', 'Allow photo library access to upload listing images.');
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsMultipleSelection: true,
+      quality: 0.8,
+      selectionLimit: 5,
+    });
+
+    if (!result.canceled) {
+      const picked = result.assets.slice(0, 5).map((asset, idx) => ({
+        uri: asset.uri,
+        type: asset.mimeType || 'image/jpeg',
+        name: asset.fileName || `listing-${Date.now()}-${idx}.jpg`,
+      }));
+      setImages(picked);
+    }
+  };
+
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <SafeAreaView style={styles.container} edges={['top']}>
+      <ScreenHeader eyebrow="Seller workspace" title="Create Listing" subtitle="Post a product with web-consistent details and style." />
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <Text style={styles.label}>Images</Text>
+        <TouchableOpacity style={styles.imagePickerBtn} onPress={pickImages}>
+          <Text style={styles.imagePickerBtnText}>{images.length > 0 ? 'Change photos' : 'Add product photos'}</Text>
+        </TouchableOpacity>
+        {images.length > 0 && (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.previewScroll}>
+            {images.map((img, idx) => (
+              <Image key={`${img.uri}-${idx}`} source={{ uri: img.uri }} style={styles.previewImage} />
+            ))}
+          </ScrollView>
+        )}
+
         <Text style={styles.label}>Title *</Text>
         <TextInput
           style={styles.input}
@@ -117,7 +174,7 @@ const CreateListingScreen = ({ navigation }: any) => {
 
         <Text style={styles.label}>Category *</Text>
         {catLoading ? (
-          <ActivityIndicator style={{ marginVertical: 12 }} color="#2563eb" />
+          <ActivityIndicator style={{ marginVertical: 12 }} color={colors.accent} />
         ) : categories.length > 0 ? (
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroll}>
             {categories.map((cat) => (
@@ -171,9 +228,21 @@ const CreateListingScreen = ({ navigation }: any) => {
         {(deliveryOption === 'pickup' || deliveryOption === 'both') && (
           <>
             <Text style={styles.label}>Pickup Location</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroll}>
+              {CAMPUS_LOCATIONS.map((loc) => (
+                <TouchableOpacity
+                  key={loc}
+                  style={[styles.chip, pickupLocation === loc && styles.chipActive]}
+                  onPress={() => setPickupLocation(loc)}
+                >
+                  <Text style={[styles.chipText, pickupLocation === loc && styles.chipTextActive]}>{loc}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
             <TextInput
               style={styles.input}
-              placeholder="e.g. Gate B, UMaT Campus"
+              placeholder="Or enter custom pickup location"
+              placeholderTextColor="#9a8e7f"
               value={pickupLocation}
               onChangeText={setPickupLocation}
             />
@@ -216,31 +285,32 @@ const CreateListingScreen = ({ navigation }: any) => {
           )}
         </TouchableOpacity>
       </ScrollView>
+      </SafeAreaView>
     </KeyboardAvoidingView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f9fafb' },
+  container: { flex: 1, backgroundColor: colors.bg },
   content: { padding: 16, paddingBottom: 40 },
   label: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#374151',
+    color: '#6f6559',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginTop: 18,
     marginBottom: 6,
   },
   input: {
-    backgroundColor: '#fff',
+    backgroundColor: '#fffdf8',
     borderWidth: 1,
-    borderColor: '#e5e7eb',
-    borderRadius: 10,
+    borderColor: colors.border,
+    borderRadius: 0,
     paddingHorizontal: 12,
     paddingVertical: 11,
     fontSize: 15,
-    color: '#111827',
+    color: colors.text,
   },
   textarea: { minHeight: 90, textAlignVertical: 'top' },
   chipScroll: { marginBottom: 4 },
@@ -260,21 +330,37 @@ const styles = StyleSheet.create({
   chip: {
     paddingHorizontal: 14,
     paddingVertical: 7,
-    borderRadius: 20,
-    backgroundColor: '#fff',
+    borderRadius: 999,
+    backgroundColor: '#fffdf8',
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: colors.border,
     marginRight: 8,
     marginBottom: 8,
   },
-  chipActive: { backgroundColor: '#2563eb', borderColor: '#2563eb' },
+  chipActive: { backgroundColor: colors.text, borderColor: colors.text },
   chipText: { fontSize: 13, color: '#374151', fontWeight: '500' },
   chipTextActive: { color: '#fff', fontWeight: '700' },
+  imagePickerBtn: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: '#fffdf8',
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  imagePickerBtnText: {
+    fontSize: 11,
+    color: '#3e352b',
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 1.1,
+  },
+  previewScroll: { marginTop: 8, marginBottom: 8 },
+  previewImage: { width: 90, height: 90, marginRight: 8, borderWidth: 1, borderColor: colors.border },
   submitBtn: {
     marginTop: 28,
-    backgroundColor: '#111827',
+    backgroundColor: colors.text,
     paddingVertical: 14,
-    borderRadius: 12,
+    borderRadius: 0,
     alignItems: 'center',
   },
   submitBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },

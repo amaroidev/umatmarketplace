@@ -130,7 +130,7 @@ const LoginScreen = ({ navigation }: any) => {
           title: 'Sign up first',
           message: 'No account found. Please sign up with Google and choose a role.',
         });
-        setTimeout(() => navigation.navigate('Register'), 500);
+        setTimeout(() => navigation.getParent()?.navigate('Register'), 500);
       } else if (result?.needsProfileCompletion) {
         setAlertState({
           visible: true,

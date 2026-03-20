@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import notificationService, { Notification } from '../services/notification.service';
 import { colors } from '../theme';
 
@@ -110,7 +111,7 @@ const NotificationsScreen = () => {
   );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <View>
           <Text style={styles.headerTitle}>Notifications</Text>
@@ -159,14 +160,14 @@ const NotificationsScreen = () => {
           ItemSeparatorComponent={() => <View style={styles.separator} />}
         />
       )}
-    </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   header: {
-    paddingTop: 56,
+    paddingTop: 10,
     paddingBottom: 12,
     paddingHorizontal: 16,
     borderBottomWidth: 1,

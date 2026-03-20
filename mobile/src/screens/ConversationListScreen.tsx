@@ -9,9 +9,11 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import chatService, { Conversation } from '../services/chat.service';
 import { useAuth } from '../context/AuthContext';
 import { colors } from '../theme';
+import ScreenHeader from '../components/ScreenHeader';
 
 const formatTime = (dateStr: string) => {
   const d = new Date(dateStr);
@@ -85,7 +87,7 @@ const ConversationListScreen = ({ navigation }: any) => {
           </View>
           {item.product && (
             <Text style={styles.productLabel} numberOfLines={1}>
-              Re: {item.product.title}
+              Product: {item.product.title}
             </Text>
           )}
           <View style={styles.rowBottom}>
@@ -107,10 +109,8 @@ const ConversationListScreen = ({ navigation }: any) => {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Messages</Text>
-      </View>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <ScreenHeader eyebrow="Inbox" title="Messages" subtitle="Offers, negotiations, and deal chats." />
 
       {loading ? (
         <View style={styles.centered}>
@@ -141,21 +141,12 @@ const ConversationListScreen = ({ navigation }: any) => {
           ItemSeparatorComponent={() => <View style={styles.separator} />}
         />
       )}
-    </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
-  header: {
-    paddingTop: 56,
-    paddingBottom: 12,
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-    backgroundColor: '#f4ecdd',
-  },
-  headerTitle: { fontSize: 26, fontWeight: '900', color: '#1f1a14', textTransform: 'uppercase' },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   row: {
     flexDirection: 'row',

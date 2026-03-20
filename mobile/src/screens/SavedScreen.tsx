@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import savedService from '../services/saved.service';
 import { Product } from '../types';
 import { colors } from '../theme';
@@ -39,42 +40,43 @@ const SavedScreen = ({ navigation }: any) => {
   }
 
   return (
-    <FlatList
-      style={styles.container}
-      data={products}
-      keyExtractor={(item) => item._id}
-      contentContainerStyle={styles.listContent}
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={() => {
-            setRefreshing(true);
-            fetchSaved(false);
-          }}
-        />
-      }
-      renderItem={({ item }: { item: Product }) => (
-        <TouchableOpacity
-          style={styles.card}
-          onPress={() => navigation.getParent()?.navigate('ProductsTab', {
-            screen: 'ProductDetail',
-            params: { productId: item._id },
-          })}
-        >
-          <Image
-            source={{ uri: item.images?.[0]?.url || 'https://placehold.co/200x160/e2e8f0/64748b?text=Saved' }}
-            style={styles.image}
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <FlatList
+        data={products}
+        keyExtractor={(item) => item._id}
+        contentContainerStyle={styles.listContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => {
+              setRefreshing(true);
+              fetchSaved(false);
+            }}
           />
-          <View style={styles.content}>
-            <Text style={styles.title} numberOfLines={2}>{item.title}</Text>
-            <Text style={styles.price}>
-              GHS {item.price.toLocaleString('en-GH', { minimumFractionDigits: 2 })}
-            </Text>
-          </View>
-        </TouchableOpacity>
-      )}
-      ListEmptyComponent={<Text style={styles.empty}>No saved items yet.</Text>}
-    />
+        }
+        renderItem={({ item }: { item: Product }) => (
+          <TouchableOpacity
+            style={styles.card}
+            onPress={() => navigation.getParent()?.navigate('ProductsTab', {
+              screen: 'ProductDetail',
+              params: { productId: item._id },
+            })}
+          >
+            <Image
+              source={{ uri: item.images?.[0]?.url || 'https://placehold.co/200x160/e2e8f0/64748b?text=Saved' }}
+              style={styles.image}
+            />
+            <View style={styles.content}>
+              <Text style={styles.title} numberOfLines={2}>{item.title}</Text>
+              <Text style={styles.price}>
+                GHS {item.price.toLocaleString('en-GH', { minimumFractionDigits: 2 })}
+              </Text>
+            </View>
+          </TouchableOpacity>
+        )}
+        ListEmptyComponent={<Text style={styles.empty}>No saved items yet.</Text>}
+      />
+    </SafeAreaView>
   );
 };
 

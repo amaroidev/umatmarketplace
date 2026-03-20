@@ -5,7 +5,7 @@ import User from '../models/User';
 import Order from '../models/Order';
 import ApiError from '../utils/ApiError';
 import {
-  uploadMultipleToCloudinary,
+  uploadMultipleWithFallback,
   deleteMultipleFromCloudinary,
 } from '../utils/imageUpload';
 import notificationService from './notification.service';
@@ -77,7 +77,8 @@ class ProductService {
       flashSaleEndsAt?: string;
       images?: { url: string; publicId: string }[];
     },
-    files?: Express.Multer.File[]
+    files?: Express.Multer.File[],
+    reqMeta?: { protocol: string; host: string }
   ): Promise<IProductDocument> {
     const resolvedCategoryId = await this.resolveCategoryId(data.category);
 
@@ -96,7 +97,10 @@ class ProductService {
       images = data.images.slice(0, 5);
     }
     if (files && files.length > 0) {
-      images = await uploadMultipleToCloudinary(files);
+      if (!reqMeta) {
+        throw ApiError.badRequest('Request context missing for image upload.');
+      }
+      images = await uploadMultipleWithFallback(files, reqMeta);
     }
 
     // Sanitize tags
@@ -303,7 +307,8 @@ class ProductService {
       flashSalePrice?: number;
       flashSaleEndsAt?: string;
     },
-    files?: Express.Multer.File[]
+    files?: Express.Multer.File[],
+    reqMeta?: { protocol: string; host: string }
   ): Promise<IProductDocument> {
     const product = await Product.findById(productId);
 
@@ -335,7 +340,10 @@ class ProductService {
           `Cannot have more than 5 images. You have ${product.images.length}, trying to add ${files.length}.`
         );
       }
-      const newImages = await uploadMultipleToCloudinary(files);
+      if (!reqMeta) {
+        throw ApiError.badRequest('Request context missing for image upload.');
+      }
+      const newImages = await uploadMultipleWithFallback(files, reqMeta);
       product.images.push(...newImages);
     }
 

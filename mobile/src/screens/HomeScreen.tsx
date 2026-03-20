@@ -12,10 +12,18 @@ import {
   View,
   Animated,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import productService from '../services/product.service';
 import { Product } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { colors } from '../theme';
+import ScreenHeader from '../components/ScreenHeader';
+
+const CURATED_HERO_CARDS = [
+  { id: 'study', title: 'Study essentials', subtitle: 'Textbooks, calculators, and practical kits', filter: 'books' },
+  { id: 'hostel', title: 'Hostel upgrades', subtitle: 'Fans, mini-fridges, storage and comfort picks', filter: 'hostel' },
+  { id: 'gadgets', title: 'Gadgets', subtitle: 'Phones, laptops, and accessories from students', filter: 'electronics' },
+];
 
 const formatPrice = (n: number) =>
   `GHS ${n.toLocaleString('en-GH', { minimumFractionDigits: 2 })}`;
@@ -92,7 +100,7 @@ const HomeScreen = ({ navigation }: any) => {
     navigation.navigate('ProductsTab', { screen: 'ProductsHome', params: { search } });
   };
 
-  const openBrowse = () => navigation.navigate('ProductsTab', { screen: 'ProductsHome' });
+  const openBrowse = () => navigation.navigate('ProductsTab', { screen: 'ProductsHome', params: { search } });
 
   const goToProduct = (productId: string) =>
     navigation.navigate('ProductsTab', { screen: 'ProductDetail', params: { productId } });
@@ -106,36 +114,61 @@ const HomeScreen = ({ navigation }: any) => {
   }
 
   return (
-    <ScrollView
-      style={styles.container}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchData(false); }} />
-      }
-    >
-      {/* Hero / Search */}
-      <Animated.View style={[styles.hero, { opacity: fadeAnim }]}> 
-        <Text style={styles.heroGreeting}>
-          {user ? `Hey, ${user.name.split(' ')[0]} 👋` : 'UMaT Marketplace'}
-        </Text>
-        <Text style={styles.heroSubtitle}>Find great deals on campus.</Text>
-        <View style={styles.searchRow}>
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search products..."
-            placeholderTextColor="#9ca3af"
-            value={search}
-            onChangeText={setSearch}
-            onSubmitEditing={handleSearch}
-            returnKeyType="search"
-          />
-          <TouchableOpacity style={styles.searchBtn} onPress={handleSearch}>
-            <Text style={styles.searchBtnText}>Go</Text>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <ScrollView
+        style={styles.container}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchData(false); }} />
+        }
+      >
+        <ScreenHeader
+          eyebrow="Campus marketplace"
+          title="Home"
+          subtitle="Curated highlights, featured drops, and fresh campus listings."
+        />
+        {/* Hero / Search */}
+        <Animated.View style={[styles.hero, { opacity: fadeAnim }]}> 
+          <Text style={styles.heroGreeting}>
+            {user ? `Hey, ${user.name.split(' ')[0]} 👋` : 'UMaT Marketplace'}
+          </Text>
+          <Text style={styles.heroSubtitle}>Find great deals on campus.</Text>
+          <View style={styles.searchRow}>
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search products..."
+              placeholderTextColor="#9ca3af"
+              value={search}
+              onChangeText={setSearch}
+              onSubmitEditing={handleSearch}
+              returnKeyType="search"
+            />
+            <TouchableOpacity style={styles.searchBtn} onPress={handleSearch}>
+              <Text style={styles.searchBtnText}>Go</Text>
+            </TouchableOpacity>
+          </View>
+          <TouchableOpacity style={styles.secondaryHeroBtn} onPress={openBrowse}>
+            <Text style={styles.secondaryHeroBtnText}>Browse all listings</Text>
           </TouchableOpacity>
+        </Animated.View>
+
+      <View style={styles.quickSection}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionLabel}>CURATED</Text>
+          <Text style={styles.sectionTitle}>Shop by need</Text>
         </View>
-        <TouchableOpacity style={styles.secondaryHeroBtn} onPress={openBrowse}>
-          <Text style={styles.secondaryHeroBtnText}>Browse all listings</Text>
-        </TouchableOpacity>
-      </Animated.View>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.hScroll}>
+          {CURATED_HERO_CARDS.map((card) => (
+            <TouchableOpacity
+              key={card.id}
+              style={styles.curatedCard}
+              onPress={() => navigation.navigate('ProductsTab', { screen: 'ProductsHome', params: { search: card.filter } })}
+            >
+              <Text style={styles.curatedCardTitle}>{card.title}</Text>
+              <Text style={styles.curatedCardSubtitle}>{card.subtitle}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
 
       {/* Featured */}
       {featured.length > 0 && (
@@ -182,11 +215,12 @@ const HomeScreen = ({ navigation }: any) => {
           columnWrapperStyle={styles.grid}
           scrollEnabled={false}
           ListEmptyComponent={
-            <Text style={styles.emptyText}>No listings yet. Be the first to post!</Text>
+            <Text style={styles.emptyText}>No listings available yet. Check back shortly.</Text>
           }
         />
       </View>
-    </ScrollView>
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 
@@ -196,7 +230,7 @@ const styles = StyleSheet.create({
   // Hero
   hero: {
     backgroundColor: '#1f1a14',
-    paddingTop: 60,
+    paddingTop: 18,
     paddingBottom: 28,
     paddingHorizontal: 20,
   },
@@ -224,11 +258,21 @@ const styles = StyleSheet.create({
   secondaryHeroBtnText: { color: 'rgba(255,255,255,0.72)', fontSize: 12, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1 },
   // Sections
   section: { paddingTop: 24, paddingBottom: 8 },
+  quickSection: { paddingTop: 20, paddingBottom: 6 },
   sectionHeader: { paddingHorizontal: 16, marginBottom: 12 },
   sectionLabel: { fontSize: 10, fontWeight: '800', color: '#7c6f60', letterSpacing: 1.8, textTransform: 'uppercase' },
   sectionTitle: { fontSize: 22, fontWeight: '900', color: '#1f1a14', marginTop: 2, textTransform: 'uppercase' },
   // Featured horizontal scroll
   hScroll: { paddingHorizontal: 16, gap: 12 },
+  curatedCard: {
+    width: 220,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: '#fffdf8',
+    padding: 14,
+  },
+  curatedCardTitle: { fontSize: 14, fontWeight: '900', color: '#1f1a14', textTransform: 'uppercase', letterSpacing: 0.7 },
+  curatedCardSubtitle: { marginTop: 6, fontSize: 12, color: '#7b6f61', lineHeight: 17 },
   featuredCard: {
     width: 200,
     height: 150,

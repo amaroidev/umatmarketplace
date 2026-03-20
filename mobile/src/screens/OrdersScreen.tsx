@@ -8,9 +8,11 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import orderService, { Order } from '../services/order.service';
 import { useAuth } from '../context/AuthContext';
 import { colors } from '../theme';
+import ScreenHeader from '../components/ScreenHeader';
 
 const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
   pending: { bg: '#fef3c7', text: '#92400e' },
@@ -92,10 +94,8 @@ const OrdersScreen = ({ navigation }: any) => {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Orders</Text>
-      </View>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <ScreenHeader eyebrow="Transactions" title="Orders" subtitle="Track purchases and sales lifecycle." />
 
       {/* Tabs */}
       <View style={styles.tabs}>
@@ -145,21 +145,12 @@ const OrdersScreen = ({ navigation }: any) => {
           }
         />
       )}
-    </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
-  header: {
-    paddingTop: 56,
-    paddingBottom: 12,
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-    backgroundColor: '#f4ecdd',
-  },
-  headerTitle: { fontSize: 26, fontWeight: '900', color: '#1f1a14', textTransform: 'uppercase' },
   tabs: {
     flexDirection: 'row',
     backgroundColor: '#fffdf8',

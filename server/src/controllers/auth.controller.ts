@@ -427,7 +427,6 @@ export const updateSellerOnboarding = async (
       payoutProvider,
       payoutAccountName,
       payoutAccountNumber,
-      identityDocumentUrl,
       identityStatus,
       completed,
     } = req.body;
@@ -444,9 +443,9 @@ export const updateSellerOnboarding = async (
       payoutProvider,
       payoutAccountName,
       payoutAccountNumber,
-      identityDocumentUrl,
-      identityStatus: identityStatus || (identityDocumentUrl ? 'pending' : current.sellerOnboarding?.identityStatus || 'not_submitted'),
-      identitySubmittedAt: identityDocumentUrl ? new Date() : current.sellerOnboarding?.identitySubmittedAt,
+      identityDocumentUrl: current.sellerOnboarding?.identityDocumentUrl || '',
+      identityStatus: identityStatus || current.sellerOnboarding?.identityStatus || 'not_submitted',
+      identitySubmittedAt: current.sellerOnboarding?.identitySubmittedAt,
       completed: !!completed,
       completedAt: completed ? new Date() : current.sellerOnboarding?.completedAt,
     };

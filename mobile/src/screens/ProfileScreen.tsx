@@ -1,7 +1,9 @@
 import React from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../context/AuthContext';
 import { colors } from '../theme';
+import ScreenHeader from '../components/ScreenHeader';
 
 const ProfileScreen = ({ navigation }: any) => {
   const { user, logout } = useAuth();
@@ -12,30 +14,36 @@ const ProfileScreen = ({ navigation }: any) => {
       onPress: () => navigation.navigate('ProfileEdit'),
     },
     {
+      label: 'Settings',
+      onPress: () => navigation.navigate('Settings'),
+    },
+    {
       label: 'My Orders',
-      onPress: () => navigation.navigate('OrdersTab'),
+      onPress: () => navigation.navigate('Orders'),
     },
     {
-      label: 'Create Listing',
-      onPress: () => navigation.navigate('CreateListing'),
-      show: user?.role === 'seller' || user?.role === 'admin',
+      label: 'Saved Items',
+      onPress: () => navigation.navigate('SavedItems'),
     },
     {
-      label: 'My Listings',
-      onPress: () => navigation.navigate('MyListings'),
-      show: user?.role === 'seller' || user?.role === 'admin',
+      label: 'Alerts',
+      onPress: () => navigation.navigate('Alerts'),
     },
     {
-      label: 'Seller Analytics',
-      onPress: () => navigation.navigate('SellerAnalytics'),
-      show: user?.role === 'seller' || user?.role === 'admin',
+      label: 'Messages',
+      onPress: () => navigation.navigate('MessagesCenter'),
     },
-  ].filter((item) => item.show !== false);
+  ];
+
+  const sellerOnboardingDone = !!(user as any)?.sellerOnboarding?.completed;
 
   const identityName = user?.storeName || user?.brandName || user?.name;
+  const isSeller = user?.role === 'seller' || user?.role === 'admin';
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <ScrollView contentContainerStyle={styles.content}>
+      <ScreenHeader eyebrow="Account" title="Profile" subtitle="Manage account, activity, and preferences." />
       {/* Avatar / header */}
       <View style={styles.avatarSection}>
         <View style={styles.avatarCircle}>
@@ -83,17 +91,39 @@ const ProfileScreen = ({ navigation }: any) => {
         ))}
       </View>
 
+      {isSeller ? (
+        <View style={styles.sellerQuickCard}>
+          {!sellerOnboardingDone ? (
+            <TouchableOpacity style={styles.sellerOutlineBtn} onPress={() => navigation.navigate('SellerOnboarding')}>
+              <Text style={styles.sellerOutlineText}>Complete Seller Setup</Text>
+            </TouchableOpacity>
+          ) : null}
+          <TouchableOpacity style={styles.sellerPrimaryBtn} onPress={() => navigation.getParent()?.navigate('SellerTab', { screen: 'CreateListing' })}>
+            <Text style={styles.sellerPrimaryText}>+ Sell Something</Text>
+          </TouchableOpacity>
+          <View style={styles.sellerQuickRow}>
+            <TouchableOpacity style={styles.sellerQuickBtn} onPress={() => navigation.getParent()?.navigate('SellerTab', { screen: 'MyListings' })}>
+              <Text style={styles.sellerQuickText}>My Listings</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.sellerQuickBtn} onPress={() => navigation.getParent()?.navigate('SellerTab', { screen: 'SellerAnalytics' })}>
+              <Text style={styles.sellerQuickText}>Analytics</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      ) : null}
+
       <TouchableOpacity style={styles.logoutBtn} onPress={logout}>
         <Text style={styles.logoutText}>Sign Out</Text>
       </TouchableOpacity>
-    </ScrollView>
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
-  content: { padding: 16, paddingBottom: 40 },
-  avatarSection: { alignItems: 'center', paddingTop: 32, paddingBottom: 24 },
+  content: { paddingBottom: 40 },
+  avatarSection: { alignItems: 'center', paddingTop: 18, paddingBottom: 24 },
   avatarCircle: {
     width: 80,
     height: 80,
@@ -121,6 +151,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderRadius: 0,
     paddingHorizontal: 16,
+    marginHorizontal: 16,
     marginBottom: 14,
   },
   infoRow: {
@@ -137,6 +168,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: 0,
+    marginHorizontal: 16,
     marginBottom: 14,
     overflow: 'hidden',
   },
@@ -159,6 +191,53 @@ const styles = StyleSheet.create({
     paddingVertical: 13,
   },
   logoutText: { color: '#9f3d34', fontSize: 12, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1.2 },
+  sellerPrimaryBtn: {
+    backgroundColor: colors.text,
+    borderWidth: 1,
+    borderColor: colors.text,
+    alignItems: 'center',
+    paddingVertical: 12,
+    marginBottom: 8,
+  },
+  sellerQuickCard: {
+    marginHorizontal: 16,
+    marginBottom: 14,
+  },
+  sellerOutlineBtn: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: '#fffdf8',
+    alignItems: 'center',
+    paddingVertical: 11,
+    marginBottom: 8,
+  },
+  sellerOutlineText: { fontSize: 11, color: '#40372d', fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1.1 },
+  sellerQuickRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  sellerQuickBtn: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: '#fffdf8',
+    alignItems: 'center',
+    paddingVertical: 10,
+  },
+  sellerQuickText: {
+    fontSize: 11,
+    color: '#463d31',
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 1.1,
+  },
+  sellerPrimaryText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+    letterSpacing: 1.2,
+  },
 });
 
 export default ProfileScreen;

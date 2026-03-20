@@ -17,15 +17,14 @@ const SellerOnboardingPage: React.FC = () => {
   const [payoutProvider, setPayoutProvider] = useState(user?.sellerOnboarding?.payoutProvider || 'MTN');
   const [payoutAccountName, setPayoutAccountName] = useState(user?.sellerOnboarding?.payoutAccountName || '');
   const [payoutAccountNumber, setPayoutAccountNumber] = useState(user?.sellerOnboarding?.payoutAccountNumber || '');
-  const [identityDocumentUrl, setIdentityDocumentUrl] = useState(user?.sellerOnboarding?.identityDocumentUrl || '');
 
   const steps = useMemo(
     () => [
       !!(storeName.trim() || brandName.trim()),
       !!(payoutAccountName.trim() && payoutAccountNumber.trim()),
-      !!identityDocumentUrl.trim(),
+      true,
     ],
-    [storeName, brandName, payoutAccountName, payoutAccountNumber, identityDocumentUrl]
+    [storeName, brandName, payoutAccountName, payoutAccountNumber]
   );
 
   const allDone = steps.every(Boolean);
@@ -41,12 +40,11 @@ const SellerOnboardingPage: React.FC = () => {
         payoutProvider,
         payoutAccountName,
         payoutAccountNumber,
-        identityDocumentUrl,
         completed: allDone,
       });
       await refreshUser();
       toast.success(allDone ? 'Onboarding complete' : 'Onboarding saved');
-      if (allDone) navigate('/sell');
+      if (allDone) navigate('/dashboard');
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Failed to save onboarding');
     } finally {
@@ -79,7 +77,6 @@ const SellerOnboardingPage: React.FC = () => {
         <input value={payoutProvider} onChange={(e) => setPayoutProvider(e.target.value)} placeholder="Provider (MTN/Bank name)" className="border border-earth-200 px-3 py-2 text-sm" />
         <input value={payoutAccountName} onChange={(e) => setPayoutAccountName(e.target.value)} placeholder="Account name" className="border border-earth-200 px-3 py-2 text-sm" />
         <input value={payoutAccountNumber} onChange={(e) => setPayoutAccountNumber(e.target.value)} placeholder="Account number" className="border border-earth-200 px-3 py-2 text-sm" />
-        <input value={identityDocumentUrl} onChange={(e) => setIdentityDocumentUrl(e.target.value)} placeholder="Identity document URL" className="border border-earth-200 px-3 py-2 text-sm sm:col-span-2" />
       </div>
 
       <button

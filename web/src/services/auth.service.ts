@@ -32,7 +32,6 @@ export interface SellerOnboardingData {
   payoutProvider?: string;
   payoutAccountName?: string;
   payoutAccountNumber?: string;
-  identityDocumentUrl?: string;
   identityStatus?: 'not_submitted' | 'pending' | 'verified' | 'rejected';
   completed?: boolean;
 }
@@ -53,7 +52,7 @@ const authService = {
     return response.data;
   },
 
-  googleLogin: async (credential: string, role: 'buyer' | 'seller' = 'buyer') => {
+  googleLogin: async (credential: string, role?: 'buyer' | 'seller') => {
     const response = await api.post('/auth/google', { credential, role });
     return response.data;
   },

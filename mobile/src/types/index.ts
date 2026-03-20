@@ -10,6 +10,26 @@ export interface User {
   isVerified: boolean;
   location?: string;
   responseTimeMinutes?: number;
+  notificationPrefs?: {
+    orderUpdates: boolean;
+    messages: boolean;
+    reviews: boolean;
+    promotions: boolean;
+    systemAlerts: boolean;
+  };
+  privacyPrefs?: {
+    showPhone: boolean;
+    showLocation: boolean;
+    allowMessages: boolean;
+    showOnlineStatus: boolean;
+  };
+  sellerOnboarding?: {
+    completed?: boolean;
+    payoutMethod?: 'momo' | 'bank';
+    payoutProvider?: string;
+    payoutAccountName?: string;
+    payoutAccountNumber?: string;
+  };
 }
 
 export interface ProductImage {

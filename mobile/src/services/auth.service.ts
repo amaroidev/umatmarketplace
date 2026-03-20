@@ -42,7 +42,7 @@ const authService = {
     return response.data;
   },
 
-  googleLogin: async (credential: string, role: 'buyer' | 'seller' = 'buyer'): Promise<AuthResponse> => {
+  googleLogin: async (credential: string, role?: 'buyer' | 'seller'): Promise<AuthResponse> => {
     const response = await api.post('/auth/google', { credential, role });
     return response.data;
   },

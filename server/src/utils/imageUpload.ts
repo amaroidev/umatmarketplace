@@ -1,6 +1,8 @@
 import multer from 'multer';
 import cloudinary from '../config/cloudinary';
 import ApiError from './ApiError';
+import fs from 'fs';
+import path from 'path';
 
 // Configure multer for memory storage (buffer, not disk)
 const storage = multer.memoryStorage();
@@ -67,6 +69,39 @@ export const uploadMultipleToCloudinary = async (
   return Promise.all(uploadPromises);
 };
 
+const guessImageExtension = (mime: string): string => {
+  if (mime.includes('png')) return 'png';
+  if (mime.includes('webp')) return 'webp';
+  if (mime.includes('gif')) return 'gif';
+  return 'jpg';
+};
+
+export const uploadMultipleWithFallback = async (
+  files: Express.Multer.File[],
+  reqMeta: { protocol: string; host: string },
+  folder: string = 'campusmarketplace/products'
+): Promise<{ url: string; publicId: string }[]> => {
+  try {
+    return await uploadMultipleToCloudinary(files, folder);
+  } catch {
+    const uploadsDir = path.resolve(process.cwd(), 'uploads', 'products');
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+
+    return files.map((file, idx) => {
+      const ext = guessImageExtension(file.mimetype || 'image/jpeg');
+      const filename = `product-${Date.now()}-${idx}.${ext}`;
+      const filePath = path.join(uploadsDir, filename);
+      fs.writeFileSync(filePath, file.buffer);
+      return {
+        url: `${reqMeta.protocol}://${reqMeta.host}/uploads/products/${filename}?v=${Date.now()}`,
+        publicId: `local/products/${filename}`,
+      };
+    });
+  }
+};
+
 /**
  * Delete an image from Cloudinary by public ID
  */
@@ -86,6 +121,16 @@ export const deleteMultipleFromCloudinary = async (
   publicIds: string[]
 ): Promise<void> => {
   if (publicIds.length === 0) return;
-  const deletePromises = publicIds.map((id) => deleteFromCloudinary(id));
+  const deletePromises = publicIds.map((id) => {
+    if (id.startsWith('local/products/')) {
+      const filename = id.replace('local/products/', '');
+      const filePath = path.resolve(process.cwd(), 'uploads', 'products', filename);
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
+      return Promise.resolve();
+    }
+    return deleteFromCloudinary(id);
+  });
   await Promise.all(deletePromises);
 };

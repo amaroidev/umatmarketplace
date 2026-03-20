@@ -208,8 +208,10 @@ class AuthService {
     const profileAvatar = String(payload.user_metadata?.avatar_url || payload.user_metadata?.picture || '').trim();
     const fallbackAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(profileName || 'Campus User')}&background=1f2937&color=ffffff&bold=true`;
 
+    const normalizedRole = role && ['buyer', 'seller'].includes(role) ? role : undefined;
+
     if (!user) {
-      if (!role || !['buyer', 'seller'].includes(role)) {
+      if (!normalizedRole) {
         throw ApiError.badRequest('New Google accounts must sign up first and choose a role.');
       }
 
@@ -218,7 +220,7 @@ class AuthService {
         name: profileName || 'User',
         email,
         phone: '',
-        role,
+        role: normalizedRole,
         isVerified: true,
         avatar: profileAvatar || fallbackAvatar,
         password: this.randomPassword(),
@@ -239,6 +241,11 @@ class AuthService {
         shouldSave = true;
       }
       if (shouldSave) {
+        await user.save();
+      }
+
+      if (normalizedRole && user.role !== normalizedRole) {
+        user.role = normalizedRole;
         await user.save();
       }
     }

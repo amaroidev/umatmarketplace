@@ -9,7 +9,9 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Image,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import { colors } from '../theme';
@@ -20,6 +22,9 @@ const ProfileEditScreen = ({ navigation }: any) => {
   const [name, setName] = useState(user?.name ?? '');
   const [phone, setPhone] = useState(user?.phone ?? '');
   const [location, setLocation] = useState(user?.location ?? '');
+  const [storeName, setStoreName] = useState(user?.storeName ?? '');
+  const [brandName, setBrandName] = useState(user?.brandName ?? '');
+  const [avatar, setAvatar] = useState(user?.avatar ?? '');
   const [loading, setLoading] = useState(false);
   const [alertState, setAlertState] = useState<{ visible: boolean; title: string; message: string }>({ visible: false, title: '', message: '' });
 
@@ -34,6 +39,8 @@ const ProfileEditScreen = ({ navigation }: any) => {
         name: name.trim(),
         phone: phone.trim(),
         location: location.trim(),
+        storeName: storeName.trim(),
+        brandName: brandName.trim(),
       });
       if (res.data.success) {
         await refreshUser();
@@ -42,6 +49,45 @@ const ProfileEditScreen = ({ navigation }: any) => {
       }
     } catch (err: any) {
       const msg = err?.response?.data?.message ?? 'Failed to update profile.';
+      setAlertState({ visible: true, title: 'Error', message: msg });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePickAvatar = async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      setAlertState({ visible: true, title: 'Permission needed', message: 'Allow photos access to upload avatar.' });
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      quality: 0.8,
+    });
+
+    if (result.canceled) return;
+
+    const image = result.assets[0];
+    const formData = new FormData();
+    formData.append('avatar', {
+      uri: image.uri,
+      type: image.mimeType || 'image/jpeg',
+      name: image.fileName || `avatar-${Date.now()}.jpg`,
+    } as any);
+
+    setLoading(true);
+    try {
+      const res = await api.post('/auth/profile/avatar', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      if (res.data.success) {
+        setAvatar(res.data.data.user.avatar || '');
+        await refreshUser();
+      }
+    } catch (err: any) {
+      const msg = err?.response?.data?.message ?? 'Failed to upload avatar.';
       setAlertState({ visible: true, title: 'Error', message: msg });
     } finally {
       setLoading(false);
@@ -58,6 +104,11 @@ const ProfileEditScreen = ({ navigation }: any) => {
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
       >
+        <TouchableOpacity style={styles.avatarWrap} onPress={handlePickAvatar}>
+          {avatar ? <Image source={{ uri: avatar }} style={styles.avatar} /> : <View style={styles.avatarFallback}><Text style={styles.avatarInitial}>{name?.charAt(0)?.toUpperCase() || '?'}</Text></View>}
+          <Text style={styles.avatarHint}>Change profile photo</Text>
+        </TouchableOpacity>
+
         <Text style={styles.label}>Full Name *</Text>
         <TextInput
           style={styles.input}
@@ -82,6 +133,22 @@ const ProfileEditScreen = ({ navigation }: any) => {
           value={location}
           onChangeText={setLocation}
           placeholder="e.g. UMaT, Tarkwa"
+        />
+
+        <Text style={styles.label}>Store Name</Text>
+        <TextInput
+          style={styles.input}
+          value={storeName}
+          onChangeText={setStoreName}
+          placeholder="Your store display name"
+        />
+
+        <Text style={styles.label}>Brand Name</Text>
+        <TextInput
+          style={styles.input}
+          value={brandName}
+          onChangeText={setBrandName}
+          placeholder="Brand identity name"
         />
 
         <View style={styles.readonlyWrap}>
@@ -115,6 +182,11 @@ const ProfileEditScreen = ({ navigation }: any) => {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   content: { padding: 16, paddingBottom: 40 },
+  avatarWrap: { alignItems: 'center', marginBottom: 4 },
+  avatar: { width: 84, height: 84, borderRadius: 42, borderWidth: 1, borderColor: colors.border, backgroundColor: '#eee' },
+  avatarFallback: { width: 84, height: 84, borderRadius: 42, borderWidth: 1, borderColor: colors.border, backgroundColor: '#1f1a14', alignItems: 'center', justifyContent: 'center' },
+  avatarInitial: { color: '#fff', fontSize: 30, fontWeight: '800' },
+  avatarHint: { marginTop: 8, fontSize: 11, color: '#2f5d4f', fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1.1 },
   label: {
     fontSize: 12,
     fontWeight: '700',

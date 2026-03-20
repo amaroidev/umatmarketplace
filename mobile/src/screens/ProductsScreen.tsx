@@ -10,14 +10,16 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import productService from '../services/product.service';
 import { Product } from '../types';
 import { colors } from '../theme';
+import ScreenHeader from '../components/ScreenHeader';
 
 const PRODUCTS_CACHE_KEY = 'products_cache_v1';
 
-const ProductsScreen = ({ navigation }: any) => {
+const ProductsScreen = ({ navigation, route }: any) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -44,8 +46,14 @@ const ProductsScreen = ({ navigation }: any) => {
   };
 
   useEffect(() => {
+    const incomingSearch = typeof route?.params?.search === 'string' ? route.params.search : '';
+    if (incomingSearch) {
+      setSearch(incomingSearch);
+      setTimeout(() => fetchProducts(), 0);
+      return;
+    }
     fetchProducts();
-  }, []);
+  }, [route?.params?.search]);
 
   const renderItem = ({ item }: { item: Product }) => {
     const image = item.images?.[0]?.url;
@@ -69,15 +77,17 @@ const ProductsScreen = ({ navigation }: any) => {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.heroTop}>
-        <Text style={styles.heroLabel}>Campus marketplace</Text>
-        <Text style={styles.heroTitle}>Browse Listings</Text>
-      </View>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <ScreenHeader
+        eyebrow="Marketplace"
+        title="Browse Listings"
+        subtitle="Find verified deals by category and latest posts."
+      />
       <View style={styles.searchWrap}>
         <TextInput
           style={styles.searchInput}
-          placeholder="Search products"
+          placeholder="Search for books, devices, rooms..."
+          placeholderTextColor="#9a8e7f"
           value={search}
           onChangeText={(value: string) => setSearch(value)}
           onSubmitEditing={() => fetchProducts()}
@@ -123,30 +133,21 @@ const ProductsScreen = ({ navigation }: any) => {
           ListEmptyComponent={<Text style={styles.emptyText}>No products found.</Text>}
         />
       )}
-    </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
-  heroTop: {
-    paddingTop: 14,
-    paddingHorizontal: 12,
-    paddingBottom: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-    backgroundColor: '#f4ecdd',
-  },
-  heroLabel: { fontSize: 10, color: '#7c6f60', textTransform: 'uppercase', letterSpacing: 1.6, fontWeight: '800' },
-  heroTitle: { marginTop: 4, fontSize: 22, color: colors.text, fontWeight: '900', textTransform: 'uppercase' },
-  searchWrap: { flexDirection: 'row', gap: 8, padding: 12, backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.border },
+  searchWrap: { flexDirection: 'row', gap: 8, paddingHorizontal: 12, paddingTop: 12, paddingBottom: 10, backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.border },
   searchInput: {
     flex: 1,
     backgroundColor: '#fff',
     borderWidth: 1,
     borderColor: colors.border,
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingVertical: 12,
+    color: '#1f1a14',
   },
   searchBtn: {
     backgroundColor: colors.text,
@@ -154,7 +155,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
   },
   searchBtnText: { color: '#fff', fontWeight: '800', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1.2 },
-  filterRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 12, paddingBottom: 10, backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.border },
+  filterRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 12, paddingBottom: 12, backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.border },
   filterChip: { borderWidth: 1, borderColor: colors.border, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 7, backgroundColor: '#fff' },
   filterChipActive: { backgroundColor: colors.text, borderColor: colors.text },
   filterChipText: { fontSize: 10, fontWeight: '800', color: '#6f6559', letterSpacing: 1.1 },
@@ -173,7 +174,7 @@ const styles = StyleSheet.create({
   price: { marginTop: 4, fontSize: 16, fontWeight: '800', color: '#2f5d4f' },
   meta: { marginTop: 4, fontSize: 11, color: '#7b6f61', textTransform: 'uppercase', letterSpacing: 0.8 },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.bg },
-  emptyText: { textAlign: 'center', color: '#7b6f61', marginTop: 40, textTransform: 'uppercase', letterSpacing: 1.2, fontSize: 11, fontWeight: '700' },
+  emptyText: { textAlign: 'center', color: '#7b6f61', marginTop: 40, textTransform: 'uppercase', letterSpacing: 1.2, fontSize: 12, fontWeight: '700' },
 });
 
 export default ProductsScreen;
